@@ -6,6 +6,8 @@ import (
 	"os"
 
 	"cloud.google.com/go/auth/credentials/idtoken"
+	"github.com/jackc/pgx/v5"
+	"github.com/pisondev/mosque-api/internal/utils"
 	"github.com/sirupsen/logrus"
 )
 
@@ -31,28 +33,59 @@ func (s *service) HandleGoogleLogin(ctx context.Context, req LoginGoogleRequest)
 		return nil, errors.New("internal server error")
 	}
 
-	// 1. Verifikasi token ke server Google (secara kriptografis)
+	// 1. Verifikasi token ke Google
 	payload, err := idtoken.Validate(ctx, req.Token, clientID)
 	if err != nil {
 		s.log.Errorf("failed to validate google token: %v", err)
 		return nil, errors.New("invalid google token")
 	}
 
-	// 2. Ekstrak data dari token Google yang sudah valid
 	email := payload.Claims["email"].(string)
 	googleID := payload.Subject
+	s.log.Infof("successfully verified user from google: %s", email)
 
-	s.log.Infof("successfully verified user: %s (Google ID: %s)", email, googleID)
+	// ==========================================
+	// LOGIKA DATABASE: CARI ATAU BUAT PENGGUNA BARU
+	// ==========================================
 
-	// TODO Selanjutnya:
-	// - Cek apakah email ini ada di database via s.repo.FindByEmail
-	// - Jika tidak ada, buat User (dan Tenant) baru
-	// - Generate JWT buatan kita sendiri dan kembalikan ke Next.js
+	// Coba cari pengguna berdasarkan email
+	user, err := s.repo.FindByEmail(ctx, email)
 
-	// Untuk sementara, kita kembalikan respons sukses dulu
+	if err != nil {
+		// Jika error-nya karena data tidak ditemukan (user baru)
+		if errors.Is(err, pgx.ErrNoRows) {
+			s.log.Infof("user %s not found, initiating auto-registration", email)
+
+			// Eksekusi Transaction untuk buat Tenant dan User baru
+			user, err = s.repo.CreateTenantAndUser(ctx, email, googleID)
+			if err != nil {
+				s.log.Errorf("failed to auto-register user: %v", err)
+				return nil, errors.New("failed to register new user")
+			}
+			s.log.Infof("successfully registered new tenant and user for %s", email)
+
+		} else {
+			// Jika error-nya karena hal lain (koneksi putus, dll)
+			s.log.Errorf("database error during user lookup: %v", err)
+			return nil, errors.New("internal server error")
+		}
+	} else {
+		s.log.Infof("existing user %s logged in", email)
+	}
+
+	// ==========================================
+	// GENERATE JWT DENGAN DATA ASLI DARI DATABASE
+	// ==========================================
+
+	tokenString, err := utils.GenerateToken(user.ID, user.TenantID, user.Email, user.Role)
+	if err != nil {
+		s.log.Errorf("failed to generate jwt: %v", err)
+		return nil, errors.New("failed to generate authentication token")
+	}
+
 	return &AuthResponse{
-		AccessToken: "jwt_token_sementara",
-		Email:       email,
-		Role:        "admin",
+		AccessToken: tokenString,
+		Email:       user.Email,
+		Role:        user.Role,
 	}, nil
 }
