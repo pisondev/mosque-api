@@ -1,0 +1,26 @@
+# Binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+bin/
+
+# Test binary, profiling data, etc.
+*.test
+*.out
+coverage.out
+
+# Dependency directories (safe to ignore if using go modules)
+vendor/
+
+# Environment Variables
+.env
+
+# IDE and OS files
+.vscode/
+.idea/
+.DS_Store
+
+# Temporary files (useful if using Air for live reload later)
+tmp/
