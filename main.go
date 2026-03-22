@@ -10,6 +10,12 @@ import (
 	"github.com/pisondev/mosque-api/internal/router"
 )
 
+// @title Mosque SaaS API
+// @version 1.0
+// @description REST API untuk Multi-Tenant Mosque Management System.
+// @securityDefinitions.apikey BearerAuth
+// @in header
+// @name Authorization
 func main() {
 	log := config.NewLogger()
 

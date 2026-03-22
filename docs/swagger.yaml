@@ -1,0 +1,507 @@
+definitions:
+  management.CreateDomainRequest:
+    properties:
+      domain_type:
+        type: string
+      hostname:
+        type: string
+    type: object
+  management.CreateTagRequest:
+    properties:
+      name:
+        type: string
+      scope:
+        type: string
+    type: object
+  management.PostPayload:
+    properties:
+      author_name:
+        type: string
+      category:
+        type: string
+      content_markdown:
+        type: string
+      excerpt:
+        type: string
+      expired_at:
+        type: string
+      published_at:
+        type: string
+      show_on_homepage:
+        type: boolean
+      sort_order:
+        type: integer
+      status:
+        type: string
+      tag_ids:
+        items:
+          type: integer
+        type: array
+      thumbnail_url:
+        type: string
+      title:
+        type: string
+    type: object
+  management.ProfileRequest:
+    properties:
+      address_full:
+        type: string
+      city:
+        type: string
+      email:
+        type: string
+      kind:
+        type: string
+      official_name:
+        type: string
+      phone_whatsapp:
+        type: string
+      short_name:
+        type: string
+    type: object
+  management.SetupTenantRequest:
+    properties:
+      name:
+        type: string
+      subdomain:
+        type: string
+    type: object
+  management.StaticPagePayload:
+    properties:
+      content_markdown:
+        type: string
+      excerpt:
+        type: string
+      title:
+        type: string
+    type: object
+  management.UpdateDomainRequest:
+    properties:
+      status:
+        type: string
+    type: object
+  management.UpdatePostStatusRequest:
+    properties:
+      published_at:
+        type: string
+      status:
+        type: string
+    type: object
+  management.UpdateTagRequest:
+    properties:
+      name:
+        type: string
+    type: object
+info:
+  contact: {}
+  description: REST API untuk Multi-Tenant Mosque Management System.
+  title: Mosque SaaS API
+  version: "1.0"
+paths:
+  /tenant/domains:
+    get:
+      parameters:
+      - description: status
+        in: query
+        name: status
+        type: string
+      - description: domain_type
+        in: query
+        name: domain_type
+        type: string
+      - description: page
+        in: query
+        name: page
+        type: integer
+      - description: limit
+        in: query
+        name: limit
+        type: integer
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: List tenant domains
+      tags:
+      - Domains
+    post:
+      parameters:
+      - description: payload
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/management.CreateDomainRequest'
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Create tenant domain
+      tags:
+      - Domains
+  /tenant/domains/{id}:
+    delete:
+      parameters:
+      - description: id
+        in: path
+        name: id
+        required: true
+        type: integer
+      responses:
+        "204":
+          description: No Content
+      security:
+      - BearerAuth: []
+      summary: Delete tenant domain
+      tags:
+      - Domains
+    patch:
+      parameters:
+      - description: id
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: payload
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/management.UpdateDomainRequest'
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Update tenant domain
+      tags:
+      - Domains
+  /tenant/me:
+    get:
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get tenant context
+      tags:
+      - Tenant
+  /tenant/posts:
+    get:
+      parameters:
+      - description: category
+        in: query
+        name: category
+        type: string
+      - description: status
+        in: query
+        name: status
+        type: string
+      - description: search
+        in: query
+        name: search
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: List posts
+      tags:
+      - Posts
+    post:
+      parameters:
+      - description: payload
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/management.PostPayload'
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Create post
+      tags:
+      - Posts
+  /tenant/posts/{id}:
+    delete:
+      parameters:
+      - description: id
+        in: path
+        name: id
+        required: true
+        type: integer
+      responses:
+        "204":
+          description: No Content
+      security:
+      - BearerAuth: []
+      summary: Delete post
+      tags:
+      - Posts
+    get:
+      parameters:
+      - description: id
+        in: path
+        name: id
+        required: true
+        type: integer
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get post detail
+      tags:
+      - Posts
+    put:
+      parameters:
+      - description: id
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: payload
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/management.PostPayload'
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Update post
+      tags:
+      - Posts
+  /tenant/posts/{id}/status:
+    patch:
+      parameters:
+      - description: id
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: payload
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/management.UpdatePostStatusRequest'
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Update post status
+      tags:
+      - Posts
+  /tenant/profile:
+    get:
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get masjid profile
+      tags:
+      - Profile
+    put:
+      parameters:
+      - description: payload
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/management.ProfileRequest'
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Create or update masjid profile
+      tags:
+      - Profile
+  /tenant/setup:
+    patch:
+      parameters:
+      - description: payload
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/management.SetupTenantRequest'
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Setup tenant name and subdomain (Onboarding)
+      tags:
+      - Tenant
+  /tenant/static-pages:
+    get:
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: List static pages
+      tags:
+      - StaticPages
+  /tenant/static-pages/{slug}:
+    put:
+      parameters:
+      - description: slug
+        in: path
+        name: slug
+        required: true
+        type: string
+      - description: payload
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/management.StaticPagePayload'
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Upsert static page by slug
+      tags:
+      - StaticPages
+  /tenant/tags:
+    get:
+      parameters:
+      - description: scope
+        in: query
+        name: scope
+        type: string
+      - description: search
+        in: query
+        name: search
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: List tags
+      tags:
+      - Tags
+    post:
+      parameters:
+      - description: payload
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/management.CreateTagRequest'
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Create tag
+      tags:
+      - Tags
+  /tenant/tags/{id}:
+    delete:
+      parameters:
+      - description: id
+        in: path
+        name: id
+        required: true
+        type: integer
+      responses:
+        "204":
+          description: No Content
+      security:
+      - BearerAuth: []
+      summary: Delete tag
+      tags:
+      - Tags
+    patch:
+      parameters:
+      - description: id
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: payload
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/management.UpdateTagRequest'
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Update tag
+      tags:
+      - Tags
+securityDefinitions:
+  BearerAuth:
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"
