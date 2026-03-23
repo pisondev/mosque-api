@@ -1,50 +1,54 @@
 # Mosque API (Core SaaS Engine)
 
+Current release: **v1.0.0**
+
 Backend service for Mosque SaaS platform, built with a Modular Monolith architecture.
 
 ## Tech Stack
-- **Language:** Go (Golang)
-- **Framework:** Go Fiber v2
-- **Database:** PostgreSQL (Raw SQL via `pgx/v5`)
-- **Migrations:** `golang-migrate`
-- **Logging:** Logrus
+- Go (Golang)
+- Go Fiber v2
+- PostgreSQL (`pgx/v5`)
+- Migrations via `golang-migrate` (invoked from Go)
+- Logrus
 
 ## Prerequisites
 - Go 1.21+
-- Docker & Docker Compose
-- `golang-migrate` CLI installed
 
-## Local Setup
+## Local Setup (Windows, non-Docker)
 
-1. **Clone the repository:**
-   ```bash
-   git clone <repository-url>
-   cd mosque-api
-   ```
+1. Clone repository and open project root.
+2. Setup local PostgreSQL portable:
 
-2. **Setup Environment Variables:**
-    
-    Copy .env.example to .env (Create .env file and set the DB_URL and APP_PORT).
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/setup_local_postgres.ps1
+```
 
-    ```Code snippet
-    APP_PORT=8080
-    DB_URL=postgres://root:secretpassword@localhost:5435/mosque_saas?sslmode=disable
-    ```
+3. Set environment for API:
 
-3. **Run Database:**
+```powershell
+$env:APP_PORT='8080'
+$env:DB_URL='postgres://root:secretpassword@localhost:5432/mosque_saas?sslmode=disable'
+$env:JWT_SECRET='dev-secret'
+```
 
-    Ensure your docker-compose is running.
+4. Run migration:
 
-    ```Bash
-    docker compose up -d
-    ```
-4. **Run Migrations:**
+```powershell
+make migrate-up
+```
 
-    ```Bash
-    make migrate-up
-    ```
-5. **Start the Server:**
+5. Start API server:
 
-    ```Bash
-    make run
-    ```
+```powershell
+make run
+```
+
+## Local Setup (manual PostgreSQL)
+
+If you use your own PostgreSQL service, just set:
+
+```env
+APP_PORT=8080
+DB_URL=postgres://root:secretpassword@localhost:5432/mosque_saas?sslmode=disable
+JWT_SECRET=dev-secret
+```

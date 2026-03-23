@@ -98,6 +98,125 @@ info:
   title: Mosque SaaS API
   version: "1.0"
 paths:
+  /public/{hostname}/donation-channels:
+    get:
+      parameters:
+      - description: hostname
+        in: path
+        name: hostname
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Public donation channels
+      tags:
+      - Public
+  /public/{hostname}/events:
+    get:
+      parameters:
+      - description: hostname
+        in: path
+        name: hostname
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Public events
+      tags:
+      - Public
+  /public/{hostname}/external-links:
+    get:
+      parameters:
+      - description: hostname
+        in: path
+        name: hostname
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Public external links
+      tags:
+      - Public
+  /public/{hostname}/gallery/albums:
+    get:
+      parameters:
+      - description: hostname
+        in: path
+        name: hostname
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Public gallery albums
+      tags:
+      - Public
+  /public/{hostname}/gallery/items:
+    get:
+      parameters:
+      - description: hostname
+        in: path
+        name: hostname
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Public gallery items
+      tags:
+      - Public
+  /public/{hostname}/management-members:
+    get:
+      parameters:
+      - description: hostname
+        in: path
+        name: hostname
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Public management members
+      tags:
+      - Public
+  /public/{hostname}/social-links:
+    get:
+      parameters:
+      - description: hostname
+        in: path
+        name: hostname
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Public social links
+      tags:
+      - Public
   /tenant/domains:
     get:
       parameters:
@@ -187,6 +306,602 @@ paths:
       summary: Update tenant domain
       tags:
       - Domains
+  /tenant/donation-channels:
+    get:
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: List donation channels
+      tags:
+      - Engagement
+    post:
+      parameters:
+      - description: payload
+        in: body
+        name: payload
+        required: true
+        schema:
+          type: object
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Create donation channel
+      tags:
+      - Engagement
+  /tenant/donation-channels/{id}:
+    delete:
+      parameters:
+      - description: id
+        in: path
+        name: id
+        required: true
+        type: integer
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Delete donation channel
+      tags:
+      - Engagement
+    get:
+      parameters:
+      - description: id
+        in: path
+        name: id
+        required: true
+        type: integer
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get donation channel
+      tags:
+      - Engagement
+    put:
+      parameters:
+      - description: id
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: payload
+        in: body
+        name: payload
+        required: true
+        schema:
+          type: object
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Update donation channel
+      tags:
+      - Engagement
+  /tenant/events:
+    get:
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: List events
+      tags:
+      - Events
+    post:
+      parameters:
+      - description: payload
+        in: body
+        name: payload
+        required: true
+        schema:
+          type: object
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Create event
+      tags:
+      - Events
+  /tenant/events/{id}:
+    delete:
+      parameters:
+      - description: id
+        in: path
+        name: id
+        required: true
+        type: integer
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Delete event
+      tags:
+      - Events
+    get:
+      parameters:
+      - description: id
+        in: path
+        name: id
+        required: true
+        type: integer
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get event
+      tags:
+      - Events
+    put:
+      parameters:
+      - description: id
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: payload
+        in: body
+        name: payload
+        required: true
+        schema:
+          type: object
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Update event
+      tags:
+      - Events
+  /tenant/events/{id}/status:
+    patch:
+      parameters:
+      - description: id
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: payload
+        in: body
+        name: payload
+        required: true
+        schema:
+          type: object
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Update event status
+      tags:
+      - Events
+  /tenant/external-links:
+    get:
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: List external links
+      tags:
+      - Engagement
+    post:
+      parameters:
+      - description: payload
+        in: body
+        name: payload
+        required: true
+        schema:
+          type: object
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Create external link
+      tags:
+      - Engagement
+  /tenant/external-links/{id}:
+    delete:
+      parameters:
+      - description: id
+        in: path
+        name: id
+        required: true
+        type: integer
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Delete external link
+      tags:
+      - Engagement
+    get:
+      parameters:
+      - description: id
+        in: path
+        name: id
+        required: true
+        type: integer
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get external link
+      tags:
+      - Engagement
+    put:
+      parameters:
+      - description: id
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: payload
+        in: body
+        name: payload
+        required: true
+        schema:
+          type: object
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Update external link
+      tags:
+      - Engagement
+  /tenant/feature-catalog:
+    get:
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: List feature catalog
+      tags:
+      - Engagement
+  /tenant/gallery/albums:
+    get:
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: List gallery albums
+      tags:
+      - Gallery
+    post:
+      parameters:
+      - description: payload
+        in: body
+        name: payload
+        required: true
+        schema:
+          type: object
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Create gallery album
+      tags:
+      - Gallery
+  /tenant/gallery/albums/{id}:
+    delete:
+      parameters:
+      - description: id
+        in: path
+        name: id
+        required: true
+        type: integer
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Delete gallery album
+      tags:
+      - Gallery
+    get:
+      parameters:
+      - description: id
+        in: path
+        name: id
+        required: true
+        type: integer
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get gallery album
+      tags:
+      - Gallery
+    put:
+      parameters:
+      - description: id
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: payload
+        in: body
+        name: payload
+        required: true
+        schema:
+          type: object
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Update gallery album
+      tags:
+      - Gallery
+  /tenant/gallery/items:
+    get:
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: List gallery items
+      tags:
+      - Gallery
+    post:
+      parameters:
+      - description: payload
+        in: body
+        name: payload
+        required: true
+        schema:
+          type: object
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Create gallery item
+      tags:
+      - Gallery
+  /tenant/gallery/items/{id}:
+    delete:
+      parameters:
+      - description: id
+        in: path
+        name: id
+        required: true
+        type: integer
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Delete gallery item
+      tags:
+      - Gallery
+    get:
+      parameters:
+      - description: id
+        in: path
+        name: id
+        required: true
+        type: integer
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get gallery item
+      tags:
+      - Gallery
+    put:
+      parameters:
+      - description: id
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: payload
+        in: body
+        name: payload
+        required: true
+        schema:
+          type: object
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Update gallery item
+      tags:
+      - Gallery
+  /tenant/management-members:
+    get:
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: List management members
+      tags:
+      - ManagementMembers
+    post:
+      parameters:
+      - description: payload
+        in: body
+        name: payload
+        required: true
+        schema:
+          type: object
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Create management member
+      tags:
+      - ManagementMembers
+  /tenant/management-members/{id}:
+    delete:
+      parameters:
+      - description: id
+        in: path
+        name: id
+        required: true
+        type: integer
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Delete management member
+      tags:
+      - ManagementMembers
+    get:
+      parameters:
+      - description: id
+        in: path
+        name: id
+        required: true
+        type: integer
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get management member
+      tags:
+      - ManagementMembers
+    put:
+      parameters:
+      - description: id
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: payload
+        in: body
+        name: payload
+        required: true
+        schema:
+          type: object
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Update management member
+      tags:
+      - ManagementMembers
   /tenant/me:
     get:
       responses:
@@ -328,6 +1043,263 @@ paths:
       summary: Update post status
       tags:
       - Posts
+  /tenant/prayer-calendar:
+    get:
+      parameters:
+      - description: from
+        in: query
+        name: from
+        type: string
+      - description: to
+        in: query
+        name: to
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get prayer calendar
+      tags:
+      - Worship
+  /tenant/prayer-duties:
+    get:
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: List prayer duties
+      tags:
+      - Worship
+    post:
+      parameters:
+      - description: payload
+        in: body
+        name: payload
+        required: true
+        schema:
+          type: object
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Create prayer duty
+      tags:
+      - Worship
+  /tenant/prayer-duties/{id}:
+    delete:
+      parameters:
+      - description: id
+        in: path
+        name: id
+        required: true
+        type: integer
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Delete prayer duty
+      tags:
+      - Worship
+    get:
+      parameters:
+      - description: id
+        in: path
+        name: id
+        required: true
+        type: integer
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get prayer duty
+      tags:
+      - Worship
+    put:
+      parameters:
+      - description: id
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: payload
+        in: body
+        name: payload
+        required: true
+        schema:
+          type: object
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Update prayer duty
+      tags:
+      - Worship
+  /tenant/prayer-time-settings:
+    get:
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get prayer time settings
+      tags:
+      - Worship
+    put:
+      parameters:
+      - description: payload
+        in: body
+        name: payload
+        required: true
+        schema:
+          type: object
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Upsert prayer time settings
+      tags:
+      - Worship
+  /tenant/prayer-times-daily:
+    get:
+      parameters:
+      - description: from
+        in: query
+        name: from
+        type: string
+      - description: to
+        in: query
+        name: to
+        type: string
+      - description: page
+        in: query
+        name: page
+        type: integer
+      - description: limit
+        in: query
+        name: limit
+        type: integer
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: List prayer times daily
+      tags:
+      - Worship
+    post:
+      parameters:
+      - description: payload
+        in: body
+        name: payload
+        required: true
+        schema:
+          type: object
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Create prayer times daily
+      tags:
+      - Worship
+  /tenant/prayer-times-daily/{id}:
+    delete:
+      parameters:
+      - description: id
+        in: path
+        name: id
+        required: true
+        type: integer
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Delete prayer times daily
+      tags:
+      - Worship
+    get:
+      parameters:
+      - description: id
+        in: path
+        name: id
+        required: true
+        type: integer
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get prayer times daily
+      tags:
+      - Worship
+    put:
+      parameters:
+      - description: id
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: payload
+        in: body
+        name: payload
+        required: true
+        schema:
+          type: object
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Update prayer times daily
+      tags:
+      - Worship
   /tenant/profile:
     get:
       responses:
@@ -380,6 +1352,192 @@ paths:
       summary: Setup tenant name and subdomain (Onboarding)
       tags:
       - Tenant
+  /tenant/social-links:
+    get:
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: List social links
+      tags:
+      - Engagement
+    post:
+      parameters:
+      - description: payload
+        in: body
+        name: payload
+        required: true
+        schema:
+          type: object
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Create social link
+      tags:
+      - Engagement
+  /tenant/social-links/{id}:
+    delete:
+      parameters:
+      - description: id
+        in: path
+        name: id
+        required: true
+        type: integer
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Delete social link
+      tags:
+      - Engagement
+    get:
+      parameters:
+      - description: id
+        in: path
+        name: id
+        required: true
+        type: integer
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get social link
+      tags:
+      - Engagement
+    put:
+      parameters:
+      - description: id
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: payload
+        in: body
+        name: payload
+        required: true
+        schema:
+          type: object
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Update social link
+      tags:
+      - Engagement
+  /tenant/special-days:
+    get:
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: List special days
+      tags:
+      - Worship
+    post:
+      parameters:
+      - description: payload
+        in: body
+        name: payload
+        required: true
+        schema:
+          type: object
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Create special day
+      tags:
+      - Worship
+  /tenant/special-days/{id}:
+    delete:
+      parameters:
+      - description: id
+        in: path
+        name: id
+        required: true
+        type: integer
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Delete special day
+      tags:
+      - Worship
+    get:
+      parameters:
+      - description: id
+        in: path
+        name: id
+        required: true
+        type: integer
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get special day
+      tags:
+      - Worship
+    put:
+      parameters:
+      - description: id
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: payload
+        in: body
+        name: payload
+        required: true
+        schema:
+          type: object
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Update special day
+      tags:
+      - Worship
   /tenant/static-pages:
     get:
       responses:
@@ -499,6 +1657,64 @@ paths:
       summary: Update tag
       tags:
       - Tags
+  /tenant/website-features:
+    get:
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: List website features
+      tags:
+      - Engagement
+  /tenant/website-features/{feature_id}:
+    put:
+      parameters:
+      - description: feature_id
+        in: path
+        name: feature_id
+        required: true
+        type: integer
+      - description: payload
+        in: body
+        name: payload
+        required: true
+        schema:
+          type: object
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Update website feature
+      tags:
+      - Engagement
+  /tenant/website-features/bulk:
+    patch:
+      parameters:
+      - description: payload
+        in: body
+        name: payload
+        required: true
+        schema:
+          type: object
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Bulk update website features
+      tags:
+      - Engagement
 securityDefinitions:
   BearerAuth:
     in: header

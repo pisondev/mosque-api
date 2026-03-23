@@ -24,3 +24,6 @@ vendor/
 
 # Temporary files (useful if using Air for live reload later)
 tmp/
+
+.local_postgres/
+.trae_*

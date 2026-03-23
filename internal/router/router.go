@@ -7,7 +7,10 @@ import (
 	_ "github.com/pisondev/mosque-api/docs"
 	"github.com/pisondev/mosque-api/internal/middleware"
 	"github.com/pisondev/mosque-api/internal/module/auth"
+	"github.com/pisondev/mosque-api/internal/module/community"
+	"github.com/pisondev/mosque-api/internal/module/engagement"
 	"github.com/pisondev/mosque-api/internal/module/management"
+	"github.com/pisondev/mosque-api/internal/module/worship"
 	"github.com/sirupsen/logrus"
 )
 
@@ -34,6 +37,18 @@ func SetupRoutes(app *fiber.App, db *pgxpool.Pool, log *logrus.Logger) {
 	managementService := management.NewService(managementRepo, log)
 	managementController := management.NewController(managementService, log)
 
+	worshipRepo := worship.NewRepository(db)
+	worshipService := worship.NewService(worshipRepo, log)
+	worshipController := worship.NewController(worshipService, log)
+
+	communityRepo := community.NewRepository(db)
+	communityService := community.NewService(communityRepo, log)
+	communityController := community.NewController(communityService, log)
+
+	engagementRepo := engagement.NewRepository(db)
+	engagementService := engagement.NewService(engagementRepo, log)
+	engagementController := engagement.NewController(engagementService, log)
+
 	tenantGroup.Get("/me", managementController.TenantMe)
 	tenantGroup.Patch("/setup", managementController.SetupTenant)
 	tenantGroup.Get("/domains", managementController.ListDomains)
@@ -58,4 +73,74 @@ func SetupRoutes(app *fiber.App, db *pgxpool.Pool, log *logrus.Logger) {
 
 	tenantGroup.Get("/static-pages", managementController.ListStaticPages)
 	tenantGroup.Put("/static-pages/:slug", managementController.UpsertStaticPage)
+
+	tenantGroup.Get("/prayer-time-settings", worshipController.GetPrayerTimeSettings)
+	tenantGroup.Put("/prayer-time-settings", worshipController.UpsertPrayerTimeSettings)
+	tenantGroup.Get("/prayer-times-daily", worshipController.ListPrayerTimesDaily)
+	tenantGroup.Post("/prayer-times-daily", worshipController.CreatePrayerTimesDaily)
+	tenantGroup.Get("/prayer-times-daily/:id", worshipController.GetPrayerTimesDaily)
+	tenantGroup.Put("/prayer-times-daily/:id", worshipController.UpdatePrayerTimesDaily)
+	tenantGroup.Delete("/prayer-times-daily/:id", worshipController.DeletePrayerTimesDaily)
+	tenantGroup.Get("/prayer-duties", worshipController.ListPrayerDuties)
+	tenantGroup.Post("/prayer-duties", worshipController.CreatePrayerDuty)
+	tenantGroup.Get("/prayer-duties/:id", worshipController.GetPrayerDuty)
+	tenantGroup.Put("/prayer-duties/:id", worshipController.UpdatePrayerDuty)
+	tenantGroup.Delete("/prayer-duties/:id", worshipController.DeletePrayerDuty)
+	tenantGroup.Get("/special-days", worshipController.ListSpecialDays)
+	tenantGroup.Post("/special-days", worshipController.CreateSpecialDay)
+	tenantGroup.Get("/special-days/:id", worshipController.GetSpecialDay)
+	tenantGroup.Put("/special-days/:id", worshipController.UpdateSpecialDay)
+	tenantGroup.Delete("/special-days/:id", worshipController.DeleteSpecialDay)
+	tenantGroup.Get("/prayer-calendar", worshipController.GetPrayerCalendar)
+
+	tenantGroup.Get("/events", communityController.ListEvents)
+	tenantGroup.Post("/events", communityController.CreateEvent)
+	tenantGroup.Get("/events/:id", communityController.GetEvent)
+	tenantGroup.Put("/events/:id", communityController.UpdateEvent)
+	tenantGroup.Patch("/events/:id/status", communityController.UpdateEventStatus)
+	tenantGroup.Delete("/events/:id", communityController.DeleteEvent)
+	tenantGroup.Get("/gallery/albums", communityController.ListGalleryAlbums)
+	tenantGroup.Post("/gallery/albums", communityController.CreateGalleryAlbum)
+	tenantGroup.Get("/gallery/albums/:id", communityController.GetGalleryAlbum)
+	tenantGroup.Put("/gallery/albums/:id", communityController.UpdateGalleryAlbum)
+	tenantGroup.Delete("/gallery/albums/:id", communityController.DeleteGalleryAlbum)
+	tenantGroup.Get("/gallery/items", communityController.ListGalleryItems)
+	tenantGroup.Post("/gallery/items", communityController.CreateGalleryItem)
+	tenantGroup.Get("/gallery/items/:id", communityController.GetGalleryItem)
+	tenantGroup.Put("/gallery/items/:id", communityController.UpdateGalleryItem)
+	tenantGroup.Delete("/gallery/items/:id", communityController.DeleteGalleryItem)
+	tenantGroup.Get("/management-members", communityController.ListManagementMembers)
+	tenantGroup.Post("/management-members", communityController.CreateManagementMember)
+	tenantGroup.Get("/management-members/:id", communityController.GetManagementMember)
+	tenantGroup.Put("/management-members/:id", communityController.UpdateManagementMember)
+	tenantGroup.Delete("/management-members/:id", communityController.DeleteManagementMember)
+
+	tenantGroup.Get("/donation-channels", engagementController.ListDonationChannels)
+	tenantGroup.Post("/donation-channels", engagementController.CreateDonationChannel)
+	tenantGroup.Get("/donation-channels/:id", engagementController.GetDonationChannel)
+	tenantGroup.Put("/donation-channels/:id", engagementController.UpdateDonationChannel)
+	tenantGroup.Delete("/donation-channels/:id", engagementController.DeleteDonationChannel)
+	tenantGroup.Get("/social-links", engagementController.ListSocialLinks)
+	tenantGroup.Post("/social-links", engagementController.CreateSocialLink)
+	tenantGroup.Get("/social-links/:id", engagementController.GetSocialLink)
+	tenantGroup.Put("/social-links/:id", engagementController.UpdateSocialLink)
+	tenantGroup.Delete("/social-links/:id", engagementController.DeleteSocialLink)
+	tenantGroup.Get("/external-links", engagementController.ListExternalLinks)
+	tenantGroup.Post("/external-links", engagementController.CreateExternalLink)
+	tenantGroup.Get("/external-links/:id", engagementController.GetExternalLink)
+	tenantGroup.Put("/external-links/:id", engagementController.UpdateExternalLink)
+	tenantGroup.Delete("/external-links/:id", engagementController.DeleteExternalLink)
+	tenantGroup.Get("/feature-catalog", engagementController.ListFeatureCatalog)
+	tenantGroup.Get("/website-features", engagementController.ListWebsiteFeatures)
+	tenantGroup.Put("/website-features/:feature_id", engagementController.UpsertWebsiteFeature)
+	tenantGroup.Patch("/website-features/bulk", engagementController.BulkUpsertWebsiteFeatures)
+
+	publicGroup := api.Group("/public/:hostname")
+	publicGroup.Get("/events", communityController.ListPublicEvents)
+	publicGroup.Get("/gallery/albums", communityController.ListPublicGalleryAlbums)
+	publicGroup.Get("/gallery/items", communityController.ListPublicGalleryItems)
+	publicGroup.Get("/management-members", communityController.ListPublicManagementMembers)
+	publicGroup.Get("/donation-channels", engagementController.ListPublicDonationChannels)
+	publicGroup.Get("/social-links", engagementController.ListPublicSocialLinks)
+	publicGroup.Get("/external-links", engagementController.ListPublicExternalLinks)
 }
