@@ -11,6 +11,10 @@ migrate-up:
 migrate-down:
 	migrate -path db/migrations -database "$(DB_URL)" -verbose down 1
 
+# Cek versi migrasi yang sedang aktif di database
+migrate-version:
+	migrate -path db/migrations -database "$(DB_URL)" version
+
 # Memaksa versi migrasi jika terjadi dirty state (misal: make migrate-force v=1)
 migrate-force:
 	migrate -path db/migrations -database "$(DB_URL)" force $(v)
