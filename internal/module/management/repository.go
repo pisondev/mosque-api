@@ -43,17 +43,17 @@ func NewRepository(db *pgxpool.Pool) Repository {
 }
 
 func (r *repository) GetTenantContext(ctx context.Context, tenantID, email string) (map[string]interface{}, error) {
-	var exists bool
-	err := r.db.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM tenants WHERE id=$1)`, tenantID).Scan(&exists)
+	var name, subdomain, status string
+	err := r.db.QueryRow(ctx, `SELECT name, subdomain, status FROM tenants WHERE id=$1`, tenantID).Scan(&name, &subdomain, &status)
 	if err != nil {
 		return nil, err
-	}
-	if !exists {
-		return nil, ErrNotFound
 	}
 	return map[string]interface{}{
 		"tenant_id": tenantID,
 		"email":     email,
+		"name":      name,
+		"subdomain": subdomain,
+		"status":    status,
 	}, nil
 }
 
