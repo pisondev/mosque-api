@@ -23,6 +23,9 @@ type Repository interface {
 	// Transactions (Read only for now, Create & Update will be in Tahap 4)
 	ListTransactions(ctx context.Context, tenantID string, campaignID int64, q ListQuery) ([]TransactionResponse, int64, error)
 	ListPublicDonors(ctx context.Context, tenantID string, campaignID int64, q ListQuery) ([]TransactionResponse, int64, error)
+
+	ListPublicCampaigns(ctx context.Context, hostname string, q ListQuery) ([]CampaignResponse, int64, error)
+	GetPublicCampaignBySlug(ctx context.Context, hostname string, slug string) (*CampaignResponse, error)
 }
 
 type repository struct {
@@ -280,4 +283,72 @@ func (r *repository) ListPublicDonors(ctx context.Context, tenantID string, camp
 	}
 
 	return txs, total, rows.Err()
+}
+
+// ==========================================
+// PUBLIC METHODS (Menggunakan Hostname & JOIN)
+// ==========================================
+
+func (r *repository) ListPublicCampaigns(ctx context.Context, hostname string, q ListQuery) ([]CampaignResponse, int64, error) {
+	offset := getOffset(q.Page, q.Limit)
+
+	var total int64
+	// Ingat: Cuma ambil yang is_active = true
+	countQuery := `
+		SELECT COUNT(dc.id) 
+		FROM donation_campaigns dc
+		JOIN website_domains wd ON dc.tenant_id = wd.tenant_id
+		WHERE wd.hostname = $1 AND dc.is_active = true
+	`
+	err := r.db.QueryRow(ctx, countQuery, hostname).Scan(&total)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	if total == 0 {
+		return []CampaignResponse{}, 0, nil
+	}
+
+	query := `
+		SELECT dc.id, dc.title, dc.slug, dc.description, dc.image_url, dc.target_amount, dc.collected_amount, dc.start_date, dc.end_date, dc.is_active
+		FROM donation_campaigns dc
+		JOIN website_domains wd ON dc.tenant_id = wd.tenant_id
+		WHERE wd.hostname = $1 AND dc.is_active = true
+		ORDER BY dc.created_at DESC
+		LIMIT $2 OFFSET $3
+	`
+	rows, err := r.db.Query(ctx, query, hostname, q.Limit, offset)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer rows.Close()
+
+	var campaigns []CampaignResponse
+	for rows.Next() {
+		var c CampaignResponse
+		err := rows.Scan(&c.ID, &c.Title, &c.Slug, &c.Description, &c.ImageURL, &c.TargetAmount, &c.CollectedAmount, &c.StartDate, &c.EndDate, &c.IsActive)
+		if err != nil {
+			return nil, 0, err
+		}
+		campaigns = append(campaigns, c)
+	}
+
+	return campaigns, total, rows.Err()
+}
+
+func (r *repository) GetPublicCampaignBySlug(ctx context.Context, hostname string, slug string) (*CampaignResponse, error) {
+	query := `
+		SELECT dc.id, dc.title, dc.slug, dc.description, dc.image_url, dc.target_amount, dc.collected_amount, dc.start_date, dc.end_date, dc.is_active
+		FROM donation_campaigns dc
+		JOIN website_domains wd ON dc.tenant_id = wd.tenant_id
+		WHERE wd.hostname = $1 AND dc.slug = $2 AND dc.is_active = true
+	`
+	var res CampaignResponse
+	err := r.db.QueryRow(ctx, query, hostname, slug).Scan(
+		&res.ID, &res.Title, &res.Slug, &res.Description, &res.ImageURL, &res.TargetAmount, &res.CollectedAmount, &res.StartDate, &res.EndDate, &res.IsActive,
+	)
+	if err != nil {
+		return nil, err
+	}
+	return &res, nil
 }

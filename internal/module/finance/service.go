@@ -64,10 +64,7 @@ func (s *service) UpdateCampaign(ctx context.Context, tenantID string, id int64,
 }
 
 func (s *service) GetPublicCampaignBySlug(ctx context.Context, hostname string, slug string) (*CampaignResponse, error) {
-	// TODO: Idealnya kita harus lookup tenantID berdasarkan hostname dari tabel website_domains terlebih dahulu.
-	// Untuk sementara, kita asumsikan hostname = tenantID (atau nanti di-resolve di level controller/middleware).
-	// Anggap saja hostname sudah berupa tenantID untuk saat ini agar compile lolos.
-	return s.repo.GetCampaignBySlug(ctx, hostname, slug)
+	return s.repo.GetPublicCampaignBySlug(ctx, hostname, slug)
 }
 
 // ==========================================
@@ -79,13 +76,23 @@ func (s *service) ListCampaigns(ctx context.Context, tenantID string, q ListQuer
 }
 
 func (s *service) ListPublicCampaigns(ctx context.Context, hostname string, q ListQuery) ([]CampaignResponse, int64, error) {
-	return []CampaignResponse{}, 0, nil
+	return s.repo.ListPublicCampaigns(ctx, hostname, q)
 }
 
 func (s *service) ListTransactions(ctx context.Context, tenantID string, campaignID int64, q ListQuery) ([]TransactionResponse, int64, error) {
 	return s.repo.ListTransactions(ctx, tenantID, campaignID, q)
 }
 
+// Untuk ListPublicDonors, kita butuh trick dikit untuk dapetin tenantID dari hostname dulu,
+// baru panggil fungsi ListPublicDonors yang udah dibikin sebelumnya.
 func (s *service) ListPublicDonors(ctx context.Context, hostname string, campaignID int64, q ListQuery) ([]TransactionResponse, int64, error) {
-	return []TransactionResponse{}, 0, nil
+	// 1. Dapatkan tenant_id dari hostname
+	var tenantID string
+	err := s.repo.(*repository).db.QueryRow(ctx, `SELECT tenant_id FROM website_domains WHERE domain_name = $1 LIMIT 1`, hostname).Scan(&tenantID)
+	if err != nil {
+		return nil, 0, err // Hostname tidak valid
+	}
+
+	// 2. Panggil repo yg sudah ada
+	return s.repo.ListPublicDonors(ctx, tenantID, campaignID, q)
 }
