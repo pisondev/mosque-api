@@ -1,0 +1,168 @@
+### ============================================================================
+### eTAKMIR API TESTING - MODUL FINANCE & STATIC PAYMENT
+### ============================================================================
+
+# Variabel Lingkungan (Sesuaikan nilainya sebelum menekan "Send Request")
+@baseUrl = http://localhost:8080/api/v1
+# Taruh token JWT admin masjid di sini (tanpa kata Bearer)
+@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InBpc29uLmdtLmRldkBnbWFpbC5jb20iLCJleHAiOjE3NzQ5ODMyNjMsInJvbGUiOiJhZG1pbiIsInRlbmFudF9pZCI6ImU1YWE1MWQ4LTdjMWUtNDY5Ny05NDA2LTljYWY3YzcwMWIzNSIsInVzZXJfaWQiOiJ1c2VyLXV1aWQtdGVzdGluZy0xMjMifQ.WwERel9FB1jmAzBGpYsGYaxQnYMNc8GMewyJDebE1L4 
+@hostname = masjid-alikhlas.com
+@campaignId = 1
+@staticPaymentId = 1
+
+### ============================================================================
+### 1. MODUL STATIC PAYMENT METHODS (REFACTOR)
+### ============================================================================
+
+### Get All Static Payment Methods
+GET {{baseUrl}}/tenant/static-payment-methods?page=1&limit=10
+Authorization: Bearer {{token}}
+
+###
+
+### Create Static Payment Method (Bank)
+POST {{baseUrl}}/tenant/static-payment-methods
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+    "channel_type": "bank_account",
+    "label": "Rekening Infaq Masjid",
+    "bank_name": "BSI",
+    "bank_branch": "Yogyakarta Sudirman",
+    "account_number": "1234567890",
+    "account_holder_name": "Takmir Masjid Al-Ikhlas",
+    "sort_order": 1,
+    "is_public": true
+}
+
+###
+
+### Update Static Payment Method
+PUT {{baseUrl}}/tenant/static-payment-methods/{{staticPaymentId}}
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+    "channel_type": "bank_account",
+    "label": "Rekening Infaq Masjid (Updated)",
+    "bank_name": "BSI",
+    "account_number": "1234567890",
+    "account_holder_name": "Takmir Masjid Al-Ikhlas",
+    "sort_order": 1,
+    "is_public": true
+}
+
+###
+
+### Delete Static Payment Method
+DELETE {{baseUrl}}/tenant/static-payment-methods/{{staticPaymentId}}
+Authorization: Bearer {{token}}
+
+### ============================================================================
+### 2. MODUL FINANCE - PG CONFIG (PAYMENT GATEWAY)
+### ============================================================================
+
+### Get PG Config
+GET {{baseUrl}}/tenant/pg-config
+Authorization: Bearer {{token}}
+
+###
+
+### Upsert PG Config (Gunakan PG Pusat)
+PUT {{baseUrl}}/tenant/pg-config
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+    "use_central_pg": true,
+    "provider": "etakmir_pusat",
+    "client_key": "",
+    "server_key": "",
+    "is_production": false
+}
+
+###
+
+### Upsert PG Config (Gunakan PG Midtrans Mandiri Masjid)
+PUT {{baseUrl}}/tenant/pg-config
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+    "use_central_pg": false,
+    "provider": "midtrans",
+    "client_key": "SB-Mid-client-contoh123",
+    "server_key": "SB-Mid-server-contoh123",
+    "is_production": false
+}
+
+### ============================================================================
+### 3. MODUL FINANCE - CAMPAIGNS (ADMIN TENANT)
+### ============================================================================
+
+### Get All Campaigns (Pagination)
+GET {{baseUrl}}/tenant/campaigns?page=1&limit=10
+Authorization: Bearer {{token}}
+
+###
+
+### Create Campaign
+POST {{baseUrl}}/tenant/campaigns
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+    "title": "Pembebasan Lahan Parkir Masjid",
+    "description": "Donasi untuk pembebasan lahan parkir seluas 200m2 di samping masjid.",
+    "target_amount": 50000000,
+    "start_date": "2026-04-01T00:00:00Z",
+    "end_date": "2026-06-01T00:00:00Z",
+    "is_active": true
+}
+
+###
+
+### Get Detail Campaign by ID
+GET {{baseUrl}}/tenant/campaigns/{{campaignId}}
+Authorization: Bearer {{token}}
+
+###
+
+### Update Campaign
+PUT {{baseUrl}}/tenant/campaigns/{{campaignId}}
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+    "title": "Pembebasan Lahan Parkir Masjid (Revisi)",
+    "description": "Donasi untuk pembebasan lahan parkir seluas 250m2.",
+    "target_amount": 75000000,
+    "is_active": true
+}
+
+### ============================================================================
+### 4. MODUL FINANCE - TRANSACTIONS (ADMIN TENANT)
+### ============================================================================
+
+### Get All Transactions in a Campaign
+GET {{baseUrl}}/tenant/campaigns/{{campaignId}}/transactions?page=1&limit=10
+Authorization: Bearer {{token}}
+
+### ============================================================================
+### 5. MODUL FINANCE - PUBLIC ENDPOINTS (JEMAAH / WEBSITE)
+### ============================================================================
+# Catatan: Endpoint publik tidak memerlukan Authorization Header
+
+### Get All Active Campaigns for Public
+GET {{baseUrl}}/public/{{hostname}}/campaigns?page=1&limit=10
+
+###
+
+### Get Campaign Detail by Slug (Ganti slug sesuai yang di-generate)
+GET {{baseUrl}}/public/{{hostname}}/campaigns/pembebasan-lahan-parkir-masjid
+
+###
+
+### Get Public Donors (Transparansi - Hanya yang PAID)
+GET {{baseUrl}}/public/{{hostname}}/campaigns/{{campaignId}}/donors?page=1&limit=10
