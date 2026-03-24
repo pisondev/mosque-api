@@ -99,14 +99,11 @@ func (s *service) ListTransactions(ctx context.Context, tenantID string, campaig
 	return s.repo.ListTransactions(ctx, tenantID, campaignID, q)
 }
 
-// Untuk ListPublicDonors, kita butuh trick dikit untuk dapetin tenantID dari hostname dulu,
-// baru panggil fungsi ListPublicDonors yang udah dibikin sebelumnya.
 func (s *service) ListPublicDonors(ctx context.Context, hostname string, campaignID int64, q ListQuery) ([]TransactionResponse, int64, error) {
-	// 1. Dapatkan tenant_id dari hostname
-	var tenantID string
-	err := s.repo.(*repository).db.QueryRow(ctx, `SELECT tenant_id FROM website_domains WHERE domain_name = $1 LIMIT 1`, hostname).Scan(&tenantID)
+	// 1. Dapatkan tenant_id dari hostname menggunakan antarmuka Repository resmi (Tidak ada lagi leaky abstraction!)
+	tenantID, err := s.repo.GetTenantIDByHostname(ctx, hostname)
 	if err != nil {
-		return nil, 0, err // Hostname tidak valid
+		return nil, 0, err // Hostname tidak valid atau tidak ditemukan
 	}
 
 	// 2. Panggil repo yg sudah ada

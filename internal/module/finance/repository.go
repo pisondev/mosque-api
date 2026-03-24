@@ -9,6 +9,9 @@ import (
 )
 
 type Repository interface {
+	// Helper untuk rute publik
+	GetTenantIDByHostname(ctx context.Context, hostname string) (string, error)
+
 	// PG Config
 	GetPGConfig(ctx context.Context, tenantID string) (*PGConfigResponse, error)
 	UpsertPGConfig(ctx context.Context, tenantID string, req PGConfigPayload) error
@@ -45,6 +48,12 @@ func getOffset(page, limit int) int {
 		limit = 10
 	}
 	return (page - 1) * limit
+}
+
+func (r *repository) GetTenantIDByHostname(ctx context.Context, hostname string) (string, error) {
+	var tenantID string
+	err := r.db.QueryRow(ctx, `SELECT tenant_id FROM website_domains WHERE hostname = $1 LIMIT 1`, hostname).Scan(&tenantID)
+	return tenantID, err
 }
 
 // ==========================================
