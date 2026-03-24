@@ -151,16 +151,133 @@ func (r *repository) UpdateCampaign(ctx context.Context, tenantID string, id int
 	return nil
 }
 
-// Untuk sementara kita biarkan return kosong dulu untuk List queries agar file tidak terlalu raksasa di awal
-// Nanti bisa kita isi query SELECT dengan ORDER BY dan LIMIT OFFSET
+// ==========================================
+// LIST METHODS (Pagination)
+// ==========================================
+
 func (r *repository) ListCampaigns(ctx context.Context, tenantID string, q ListQuery) ([]CampaignResponse, int64, error) {
-	return []CampaignResponse{}, 0, nil
+	offset := getOffset(q.Page, q.Limit)
+
+	// 1. Hitung total data
+	var total int64
+	err := r.db.QueryRow(ctx, `SELECT COUNT(id) FROM donation_campaigns WHERE tenant_id = $1`, tenantID).Scan(&total)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	// Jika kosong, langsung return agar tidak perlu eksekusi query kedua
+	if total == 0 {
+		return []CampaignResponse{}, 0, nil
+	}
+
+	// 2. Ambil data dengan Limit & Offset
+	query := `
+		SELECT id, title, slug, description, image_url, target_amount, collected_amount, start_date, end_date, is_active
+		FROM donation_campaigns
+		WHERE tenant_id = $1
+		ORDER BY created_at DESC
+		LIMIT $2 OFFSET $3
+	`
+	rows, err := r.db.Query(ctx, query, tenantID, q.Limit, offset)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer rows.Close()
+
+	var campaigns []CampaignResponse
+	for rows.Next() {
+		var c CampaignResponse
+		err := rows.Scan(&c.ID, &c.Title, &c.Slug, &c.Description, &c.ImageURL, &c.TargetAmount, &c.CollectedAmount, &c.StartDate, &c.EndDate, &c.IsActive)
+		if err != nil {
+			return nil, 0, err
+		}
+		campaigns = append(campaigns, c)
+	}
+
+	return campaigns, total, rows.Err()
 }
 
 func (r *repository) ListTransactions(ctx context.Context, tenantID string, campaignID int64, q ListQuery) ([]TransactionResponse, int64, error) {
-	return []TransactionResponse{}, 0, nil
+	offset := getOffset(q.Page, q.Limit)
+
+	var total int64
+	err := r.db.QueryRow(ctx, `SELECT COUNT(id) FROM donation_transactions WHERE tenant_id = $1 AND campaign_id = $2`, tenantID, campaignID).Scan(&total)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	if total == 0 {
+		return []TransactionResponse{}, 0, nil
+	}
+
+	query := `
+		SELECT id, donor_name, is_anonymous, amount, payment_method, status, paid_at
+		FROM donation_transactions
+		WHERE tenant_id = $1 AND campaign_id = $2
+		ORDER BY created_at DESC
+		LIMIT $3 OFFSET $4
+	`
+	rows, err := r.db.Query(ctx, query, tenantID, campaignID, q.Limit, offset)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer rows.Close()
+
+	var txs []TransactionResponse
+	for rows.Next() {
+		var tx TransactionResponse
+		err := rows.Scan(&tx.TransactionID, &tx.DonorName, &tx.IsAnonymous, &tx.Amount, &tx.PaymentMethod, &tx.Status, &tx.PaidAt)
+		if err != nil {
+			return nil, 0, err
+		}
+		txs = append(txs, tx)
+	}
+
+	return txs, total, rows.Err()
 }
 
 func (r *repository) ListPublicDonors(ctx context.Context, tenantID string, campaignID int64, q ListQuery) ([]TransactionResponse, int64, error) {
-	return []TransactionResponse{}, 0, nil
+	// Hampir sama dengan ListTransactions, tapi kita HANYA ambil yang statusnya 'paid' untuk transparansi publik
+	offset := getOffset(q.Page, q.Limit)
+
+	var total int64
+	err := r.db.QueryRow(ctx, `SELECT COUNT(id) FROM donation_transactions WHERE tenant_id = $1 AND campaign_id = $2 AND status = 'paid'`, tenantID, campaignID).Scan(&total)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	if total == 0 {
+		return []TransactionResponse{}, 0, nil
+	}
+
+	query := `
+		SELECT id, donor_name, is_anonymous, amount, payment_method, status, paid_at
+		FROM donation_transactions
+		WHERE tenant_id = $1 AND campaign_id = $2 AND status = 'paid'
+		ORDER BY paid_at DESC
+		LIMIT $3 OFFSET $4
+	`
+	rows, err := r.db.Query(ctx, query, tenantID, campaignID, q.Limit, offset)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer rows.Close()
+
+	var txs []TransactionResponse
+	for rows.Next() {
+		var tx TransactionResponse
+		err := rows.Scan(&tx.TransactionID, &tx.DonorName, &tx.IsAnonymous, &tx.Amount, &tx.PaymentMethod, &tx.Status, &tx.PaidAt)
+		if err != nil {
+			return nil, 0, err
+		}
+
+		// Logika Anonim: Ganti nama menjadi "Hamba Allah" jika is_anonymous = true
+		if tx.IsAnonymous {
+			tx.DonorName = "Hamba Allah"
+		}
+
+		txs = append(txs, tx)
+	}
+
+	return txs, total, rows.Err()
 }
