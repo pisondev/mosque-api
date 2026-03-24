@@ -1,0 +1,7 @@
+.git
+.vscode
+postgres-data
+main
+archive
+tests
+.env
