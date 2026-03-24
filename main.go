@@ -28,10 +28,18 @@ func main() {
 
 	app := fiber.New()
 
+	// Ambil ALLOWED_ORIGINS dari .env, fallback ke localhost jika kosong
+	allowedOrigins := os.Getenv("ALLOWED_ORIGINS")
+	if allowedOrigins == "" {
+		allowedOrigins = "http://localhost:3000"
+	}
+
+	// Konfigurasi CORS Super Aman & Fleksibel
 	app.Use(cors.New(cors.Config{
-		AllowOrigins: "http://localhost:3000",
-		AllowHeaders: "Origin, Content-Type, Accept, Authorization",
-		AllowMethods: "GET, POST, PUT, DELETE",
+		AllowOrigins:     allowedOrigins,
+		AllowHeaders:     "Origin, Content-Type, Accept, Authorization",
+		AllowMethods:     "GET, POST, PUT, DELETE, OPTIONS", // Tambahkan OPTIONS untuk preflight Chrome/Safari
+		AllowCredentials: true,                              // WAJIB TRUE agar cookie/session tidak ditolak Safari
 	}))
 
 	// Setup Routes
