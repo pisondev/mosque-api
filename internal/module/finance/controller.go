@@ -1,7 +1,11 @@
 package finance
 
 import (
+	"strconv"
+
 	"github.com/gofiber/fiber/v2"
+	"github.com/pisondev/mosque-api/internal/response"
+	"github.com/sirupsen/logrus"
 )
 
 type Controller interface {
@@ -18,4 +22,138 @@ type Controller interface {
 	ListTransactions(c *fiber.Ctx) error
 	ListPublicDonors(c *fiber.Ctx) error
 	// CreateDonation(c *fiber.Ctx) error // Nanti di Tahap 4
+}
+
+type controller struct {
+	svc Service
+	log *logrus.Logger
+}
+
+func NewController(svc Service, log *logrus.Logger) Controller {
+	return &controller{svc: svc, log: log}
+}
+
+// Helper untuk mengambil tenant_id dari middleware auth
+func getTenantID(c *fiber.Ctx) string {
+	// Sesuaikan dengan cara middleware-mu menyimpan tenant_id. Biasanya di c.Locals
+	tenantID, ok := c.Locals("tenant_id").(string)
+	if !ok {
+		return "" // Atau handle default jika perlu
+	}
+	return tenantID
+}
+
+// ==========================================
+// PG CONFIGURATIONS
+// ==========================================
+
+func (ctrl *controller) GetPGConfig(c *fiber.Ctx) error {
+	tenantID := getTenantID(c)
+	res, err := ctrl.svc.GetPGConfig(c.Context(), tenantID)
+	if err != nil {
+		ctrl.log.Error(err)
+		return response.Error(c, fiber.StatusInternalServerError, "Gagal mengambil konfigurasi payment gateway")
+	}
+	return response.Success(c, fiber.StatusOK, "Berhasil mengambil konfigurasi payment gateway", res, nil)
+}
+
+func (ctrl *controller) UpsertPGConfig(c *fiber.Ctx) error {
+	tenantID := getTenantID(c)
+	var req PGConfigPayload
+	if err := c.BodyParser(&req); err != nil {
+		return response.Error(c, fiber.StatusBadRequest, "Format payload tidak valid")
+	}
+
+	err := ctrl.svc.UpsertPGConfig(c.Context(), tenantID, req)
+	if err != nil {
+		ctrl.log.Error(err)
+		return response.Error(c, fiber.StatusInternalServerError, "Gagal menyimpan konfigurasi payment gateway")
+	}
+	return response.Success(c, fiber.StatusOK, "Konfigurasi payment gateway berhasil disimpan", nil, nil)
+}
+
+// ==========================================
+// DONATION CAMPAIGNS
+// ==========================================
+
+func (ctrl *controller) CreateCampaign(c *fiber.Ctx) error {
+	tenantID := getTenantID(c)
+	var req CampaignPayload
+	if err := c.BodyParser(&req); err != nil {
+		return response.Error(c, fiber.StatusBadRequest, "Format payload tidak valid")
+	}
+
+	res, err := ctrl.svc.CreateCampaign(c.Context(), tenantID, req)
+	if err != nil {
+		ctrl.log.Error(err)
+		return response.Error(c, fiber.StatusInternalServerError, "Gagal membuat kampanye donasi")
+	}
+	return response.Success(c, fiber.StatusCreated, "Kampanye donasi berhasil dibuat", res, nil)
+}
+
+func (ctrl *controller) GetCampaign(c *fiber.Ctx) error {
+	tenantID := getTenantID(c)
+	id, err := strconv.ParseInt(c.Params("id"), 10, 64)
+	if err != nil {
+		return response.Error(c, fiber.StatusBadRequest, "ID kampanye tidak valid")
+	}
+
+	res, err := ctrl.svc.GetCampaign(c.Context(), tenantID, id)
+	if err != nil {
+		ctrl.log.Error(err)
+		return response.Error(c, fiber.StatusNotFound, "Kampanye donasi tidak ditemukan")
+	}
+	return response.Success(c, fiber.StatusOK, "Detail kampanye donasi", res, nil)
+}
+
+func (ctrl *controller) UpdateCampaign(c *fiber.Ctx) error {
+	tenantID := getTenantID(c)
+	id, err := strconv.ParseInt(c.Params("id"), 10, 64)
+	if err != nil {
+		return response.Error(c, fiber.StatusBadRequest, "ID kampanye tidak valid")
+	}
+
+	var req CampaignPayload
+	if err := c.BodyParser(&req); err != nil {
+		return response.Error(c, fiber.StatusBadRequest, "Format payload tidak valid")
+	}
+
+	err = ctrl.svc.UpdateCampaign(c.Context(), tenantID, id, req)
+	if err != nil {
+		ctrl.log.Error(err)
+		return response.Error(c, fiber.StatusInternalServerError, "Gagal memperbarui kampanye donasi")
+	}
+	return response.Success(c, fiber.StatusOK, "Kampanye donasi berhasil diperbarui", nil, nil)
+}
+
+func (ctrl *controller) GetPublicCampaignBySlug(c *fiber.Ctx) error {
+	hostname := c.Params("hostname")
+	slug := c.Params("slug")
+
+	res, err := ctrl.svc.GetPublicCampaignBySlug(c.Context(), hostname, slug)
+	if err != nil {
+		ctrl.log.Error(err)
+		return response.Error(c, fiber.StatusNotFound, "Kampanye donasi tidak ditemukan")
+	}
+	return response.Success(c, fiber.StatusOK, "Detail kampanye donasi", res, nil)
+}
+
+// ==========================================
+// LIST METHODS (Placeholder)
+// ==========================================
+
+func (ctrl *controller) ListCampaigns(c *fiber.Ctx) error {
+	return response.Success(c, fiber.StatusOK, "List kampanye", []CampaignResponse{}, nil)
+}
+
+func (ctrl *controller) ListPublicCampaigns(c *fiber.Ctx) error {
+	return response.Success(c, fiber.StatusOK, "List kampanye publik", []CampaignResponse{}, nil)
+}
+
+func (ctrl *controller) ListTransactions(c *fiber.Ctx) error {
+	return response.Success(c, fiber.StatusOK, "List transaksi", []TransactionResponse{}, nil)
+}
+
+func (ctrl *controller) ListPublicDonors(c *fiber.Ctx) error {
+	return response.Success(c, fiber.StatusOK, "List donatur publik", []TransactionResponse{}, nil)
 }
