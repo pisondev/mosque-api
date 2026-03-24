@@ -1,0 +1,5 @@
+ALTER TABLE static_payment_methods RENAME CONSTRAINT chk_static_qris_fields TO chk_donation_qris_fields;
+ALTER TABLE static_payment_methods RENAME CONSTRAINT chk_static_bank_fields TO chk_donation_bank_fields;
+ALTER INDEX idx_static_payment_methods_tenant RENAME TO idx_donation_channels_tenant;
+ALTER SEQUENCE static_payment_methods_id_seq RENAME TO donation_channels_id_seq;
+ALTER TABLE static_payment_methods RENAME TO donation_channels;
