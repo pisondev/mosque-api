@@ -142,8 +142,25 @@ func (ctrl *controller) GetPublicCampaignBySlug(c *fiber.Ctx) error {
 // LIST METHODS (Placeholder)
 // ==========================================
 
+// Helper untuk extract pagination
+func getPagination(c *fiber.Ctx) ListQuery {
+	page, _ := strconv.Atoi(c.Query("page", "1"))
+	limit, _ := strconv.Atoi(c.Query("limit", "10"))
+	return ListQuery{Page: page, Limit: limit}
+}
+
 func (ctrl *controller) ListCampaigns(c *fiber.Ctx) error {
-	return response.Success(c, fiber.StatusOK, "List kampanye", []CampaignResponse{}, nil)
+	tenantID := getTenantID(c)
+	q := getPagination(c)
+
+	data, total, err := ctrl.svc.ListCampaigns(c.Context(), tenantID, q)
+	if err != nil {
+		ctrl.log.Error(err)
+		return response.Error(c, fiber.StatusInternalServerError, "Gagal mengambil daftar kampanye")
+	}
+
+	meta := fiber.Map{"page": q.Page, "limit": q.Limit, "total": total}
+	return response.Success(c, fiber.StatusOK, "Berhasil mengambil daftar kampanye", data, meta)
 }
 
 func (ctrl *controller) ListPublicCampaigns(c *fiber.Ctx) error {
@@ -151,7 +168,21 @@ func (ctrl *controller) ListPublicCampaigns(c *fiber.Ctx) error {
 }
 
 func (ctrl *controller) ListTransactions(c *fiber.Ctx) error {
-	return response.Success(c, fiber.StatusOK, "List transaksi", []TransactionResponse{}, nil)
+	tenantID := getTenantID(c)
+	campaignID, err := strconv.ParseInt(c.Params("id"), 10, 64)
+	if err != nil {
+		return response.Error(c, fiber.StatusBadRequest, "ID kampanye tidak valid")
+	}
+	q := getPagination(c)
+
+	data, total, err := ctrl.svc.ListTransactions(c.Context(), tenantID, campaignID, q)
+	if err != nil {
+		ctrl.log.Error(err)
+		return response.Error(c, fiber.StatusInternalServerError, "Gagal mengambil daftar transaksi")
+	}
+
+	meta := fiber.Map{"page": q.Page, "limit": q.Limit, "total": total}
+	return response.Success(c, fiber.StatusOK, "Berhasil mengambil daftar transaksi", data, meta)
 }
 
 func (ctrl *controller) ListPublicDonors(c *fiber.Ctx) error {
