@@ -2,6 +2,8 @@ package finance
 
 import (
 	"context"
+	"regexp"
+	"strings"
 
 	"github.com/sirupsen/logrus"
 )
@@ -33,6 +35,14 @@ func NewService(repo Repository, log *logrus.Logger) Service {
 	return &service{repo: repo, log: log}
 }
 
+// Helper untuk generate slug
+func generateSlug(title string) string {
+	slug := strings.ToLower(title)
+	reg := regexp.MustCompile("[^a-z0-9]+")
+	slug = reg.ReplaceAllString(slug, "-")
+	return strings.Trim(slug, "-")
+}
+
 // ==========================================
 // PG CONFIGURATIONS
 // ==========================================
@@ -52,6 +62,9 @@ func (s *service) UpsertPGConfig(ctx context.Context, tenantID string, req PGCon
 // ==========================================
 
 func (s *service) CreateCampaign(ctx context.Context, tenantID string, req CampaignPayload) (*CampaignResponse, error) {
+	if req.Slug == "" {
+		req.Slug = generateSlug(req.Title)
+	}
 	return s.repo.CreateCampaign(ctx, tenantID, req)
 }
 
@@ -60,6 +73,9 @@ func (s *service) GetCampaign(ctx context.Context, tenantID string, id int64) (*
 }
 
 func (s *service) UpdateCampaign(ctx context.Context, tenantID string, id int64, req CampaignPayload) error {
+	if req.Slug == "" {
+		req.Slug = generateSlug(req.Title)
+	}
 	return s.repo.UpdateCampaign(ctx, tenantID, id, req)
 }
 
