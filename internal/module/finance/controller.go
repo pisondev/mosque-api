@@ -1,6 +1,7 @@
 package finance
 
 import (
+	"fmt"
 	"strconv"
 
 	"github.com/gofiber/fiber/v2"
@@ -35,10 +36,16 @@ func NewController(svc Service, log *logrus.Logger) Controller {
 
 // Helper untuk mengambil tenant_id dari middleware auth
 func getTenantID(c *fiber.Ctx) string {
-	// Sesuaikan dengan cara middleware-mu menyimpan tenant_id. Biasanya di c.Locals
-	tenantID, ok := c.Locals("tenant_id").(string)
+	val := c.Locals("tenant_id")
+	if val == nil {
+		return ""
+	}
+
+	// Safe type assertion
+	tenantID, ok := val.(string)
 	if !ok {
-		return "" // Atau handle default jika perlu
+		// Fallback jika karena suatu alasan JWT mem-parsingnya bukan sebagai string murni
+		return fmt.Sprintf("%v", val)
 	}
 	return tenantID
 }
