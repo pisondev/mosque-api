@@ -9,6 +9,7 @@ import (
 	"github.com/pisondev/mosque-api/internal/module/auth"
 	"github.com/pisondev/mosque-api/internal/module/community"
 	"github.com/pisondev/mosque-api/internal/module/engagement"
+	"github.com/pisondev/mosque-api/internal/module/finance"
 	"github.com/pisondev/mosque-api/internal/module/management"
 	"github.com/pisondev/mosque-api/internal/module/worship"
 	"github.com/sirupsen/logrus"
@@ -48,6 +49,13 @@ func SetupRoutes(app *fiber.App, db *pgxpool.Pool, log *logrus.Logger) {
 	engagementRepo := engagement.NewRepository(db)
 	engagementService := engagement.NewService(engagementRepo, log)
 	engagementController := engagement.NewController(engagementService, log)
+
+	// ==========================================
+	// INIT FINANCE MODULE
+	// ==========================================
+	financeRepo := finance.NewRepository(db)
+	financeService := finance.NewService(financeRepo, log)
+	financeController := finance.NewController(financeService, log)
 
 	tenantGroup.Get("/me", managementController.TenantMe)
 	tenantGroup.Patch("/setup", managementController.SetupTenant)
@@ -135,6 +143,19 @@ func SetupRoutes(app *fiber.App, db *pgxpool.Pool, log *logrus.Logger) {
 	tenantGroup.Put("/website-features/:feature_id", engagementController.UpsertWebsiteFeature)
 	tenantGroup.Patch("/website-features/bulk", engagementController.BulkUpsertWebsiteFeatures)
 
+	// ==========================================
+	// FINANCE & DONATION ROUTES (PROTECTED)
+	// ==========================================
+	tenantGroup.Get("/pg-config", financeController.GetPGConfig)
+	tenantGroup.Put("/pg-config", financeController.UpsertPGConfig)
+
+	tenantGroup.Get("/campaigns", financeController.ListCampaigns)
+	tenantGroup.Post("/campaigns", financeController.CreateCampaign)
+	tenantGroup.Get("/campaigns/:id", financeController.GetCampaign)
+	tenantGroup.Put("/campaigns/:id", financeController.UpdateCampaign)
+
+	tenantGroup.Get("/campaigns/:id/transactions", financeController.ListTransactions)
+
 	publicGroup := api.Group("/public/:hostname")
 	publicGroup.Get("/events", communityController.ListPublicEvents)
 	publicGroup.Get("/gallery/albums", communityController.ListPublicGalleryAlbums)
@@ -143,4 +164,9 @@ func SetupRoutes(app *fiber.App, db *pgxpool.Pool, log *logrus.Logger) {
 	publicGroup.Get("/donation-channels", engagementController.ListPublicStaticPaymentMethods)
 	publicGroup.Get("/social-links", engagementController.ListPublicSocialLinks)
 	publicGroup.Get("/external-links", engagementController.ListPublicExternalLinks)
+
+	publicGroup.Get("/campaigns", financeController.ListPublicCampaigns)
+	publicGroup.Get("/campaigns/:slug", financeController.GetPublicCampaignBySlug)
+	publicGroup.Get("/campaigns/:id/donors", financeController.ListPublicDonors)
+	// POST /donate akan kita tambahkan nanti saat implementasi webhook/PG
 }
