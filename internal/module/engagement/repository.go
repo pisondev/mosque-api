@@ -9,12 +9,12 @@ import (
 )
 
 type Repository interface {
-	ListDonationChannels(ctx context.Context, tenantID string, q ListQuery) ([]DonationChannelResponse, int64, error)
-	CreateDonationChannel(ctx context.Context, tenantID string, req DonationChannelPayload) (*DonationChannelResponse, error)
-	GetDonationChannel(ctx context.Context, tenantID string, id int64) (*DonationChannelResponse, error)
-	UpdateDonationChannel(ctx context.Context, tenantID string, id int64, req DonationChannelPayload) error
-	DeleteDonationChannel(ctx context.Context, tenantID string, id int64) error
-	ListPublicDonationChannels(ctx context.Context, hostname string, q ListQuery) ([]DonationChannelResponse, int64, error)
+	ListStaticPaymentMethods(ctx context.Context, tenantID string, q ListQuery) ([]StaticPaymentMethodResponse, int64, error)
+	CreateStaticPaymentMethod(ctx context.Context, tenantID string, req StaticPaymentMethodPayload) (*StaticPaymentMethodResponse, error)
+	GetStaticPaymentMethod(ctx context.Context, tenantID string, id int64) (*StaticPaymentMethodResponse, error)
+	UpdateStaticPaymentMethod(ctx context.Context, tenantID string, id int64, req StaticPaymentMethodPayload) error
+	DeleteStaticPaymentMethod(ctx context.Context, tenantID string, id int64) error
+	ListPublicStaticPaymentMethods(ctx context.Context, hostname string, q ListQuery) ([]StaticPaymentMethodResponse, int64, error)
 
 	ListSocialLinks(ctx context.Context, tenantID string, q ListQuery) ([]SocialLinkResponse, int64, error)
 	CreateSocialLink(ctx context.Context, tenantID string, req SocialLinkPayload) (*SocialLinkResponse, error)
@@ -44,21 +44,21 @@ func NewRepository(db *pgxpool.Pool) Repository {
 	return &repository{db: db}
 }
 
-func (r *repository) ListDonationChannels(ctx context.Context, tenantID string, q ListQuery) ([]DonationChannelResponse, int64, error) {
+func (r *repository) ListStaticPaymentMethods(ctx context.Context, tenantID string, q ListQuery) ([]StaticPaymentMethodResponse, int64, error) {
 	var total int64
-	if err := r.db.QueryRow(ctx, `SELECT COUNT(*) FROM donation_channels WHERE tenant_id=$1`, tenantID).Scan(&total); err != nil {
+	if err := r.db.QueryRow(ctx, `SELECT COUNT(*) FROM static_payment_methods WHERE tenant_id=$1`, tenantID).Scan(&total); err != nil {
 		return nil, 0, err
 	}
 	offset := (q.Page - 1) * q.Limit
 	rows, err := r.db.Query(ctx, `SELECT id,channel_type::text,label,bank_name,bank_branch,account_number,account_holder_name,qris_image_url,merchant_id,description,sort_order,is_public
-		FROM donation_channels WHERE tenant_id=$1 ORDER BY sort_order ASC,id DESC LIMIT $2 OFFSET $3`, tenantID, q.Limit, offset)
+		FROM static_payment_methods WHERE tenant_id=$1 ORDER BY sort_order ASC,id DESC LIMIT $2 OFFSET $3`, tenantID, q.Limit, offset)
 	if err != nil {
 		return nil, 0, err
 	}
 	defer rows.Close()
-	var items []DonationChannelResponse
+	var items []StaticPaymentMethodResponse
 	for rows.Next() {
-		var it DonationChannelResponse
+		var it StaticPaymentMethodResponse
 		if err := rows.Scan(&it.ID, &it.ChannelType, &it.Label, &it.BankName, &it.BankBranch, &it.AccountNumber, &it.AccountHolderName, &it.QrisImageURL, &it.MerchantID, &it.Description, &it.SortOrder, &it.IsPublic); err != nil {
 			return nil, 0, err
 		}
@@ -67,9 +67,9 @@ func (r *repository) ListDonationChannels(ctx context.Context, tenantID string, 
 	return items, total, nil
 }
 
-func (r *repository) CreateDonationChannel(ctx context.Context, tenantID string, req DonationChannelPayload) (*DonationChannelResponse, error) {
-	var out DonationChannelResponse
-	err := r.db.QueryRow(ctx, `INSERT INTO donation_channels
+func (r *repository) CreateStaticPaymentMethod(ctx context.Context, tenantID string, req StaticPaymentMethodPayload) (*StaticPaymentMethodResponse, error) {
+	var out StaticPaymentMethodResponse
+	err := r.db.QueryRow(ctx, `INSERT INTO static_payment_methods
 		(tenant_id,channel_type,label,bank_name,bank_branch,account_number,account_holder_name,qris_image_url,merchant_id,description,sort_order,is_public)
 		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
 		RETURNING id,channel_type::text,label,bank_name,bank_branch,account_number,account_holder_name,qris_image_url,merchant_id,description,sort_order,is_public`,
@@ -81,10 +81,10 @@ func (r *repository) CreateDonationChannel(ctx context.Context, tenantID string,
 	return &out, nil
 }
 
-func (r *repository) GetDonationChannel(ctx context.Context, tenantID string, id int64) (*DonationChannelResponse, error) {
-	var out DonationChannelResponse
+func (r *repository) GetStaticPaymentMethod(ctx context.Context, tenantID string, id int64) (*StaticPaymentMethodResponse, error) {
+	var out StaticPaymentMethodResponse
 	err := r.db.QueryRow(ctx, `SELECT id,channel_type::text,label,bank_name,bank_branch,account_number,account_holder_name,qris_image_url,merchant_id,description,sort_order,is_public
-		FROM donation_channels WHERE tenant_id=$1 AND id=$2`, tenantID, id).
+		FROM static_payment_methods WHERE tenant_id=$1 AND id=$2`, tenantID, id).
 		Scan(&out.ID, &out.ChannelType, &out.Label, &out.BankName, &out.BankBranch, &out.AccountNumber, &out.AccountHolderName, &out.QrisImageURL, &out.MerchantID, &out.Description, &out.SortOrder, &out.IsPublic)
 	if err != nil {
 		if err == pgx.ErrNoRows {
@@ -95,8 +95,8 @@ func (r *repository) GetDonationChannel(ctx context.Context, tenantID string, id
 	return &out, nil
 }
 
-func (r *repository) UpdateDonationChannel(ctx context.Context, tenantID string, id int64, req DonationChannelPayload) error {
-	tag, err := r.db.Exec(ctx, `UPDATE donation_channels SET channel_type=$1,label=$2,bank_name=$3,bank_branch=$4,account_number=$5,account_holder_name=$6,qris_image_url=$7,merchant_id=$8,description=$9,sort_order=$10,is_public=$11,updated_at=now()
+func (r *repository) UpdateStaticPaymentMethod(ctx context.Context, tenantID string, id int64, req StaticPaymentMethodPayload) error {
+	tag, err := r.db.Exec(ctx, `UPDATE static_payment_methods SET channel_type=$1,label=$2,bank_name=$3,bank_branch=$4,account_number=$5,account_holder_name=$6,qris_image_url=$7,merchant_id=$8,description=$9,sort_order=$10,is_public=$11,updated_at=now()
 		WHERE tenant_id=$12 AND id=$13`,
 		req.ChannelType, req.Label, req.BankName, req.BankBranch, req.AccountNumber, req.AccountHolderName, req.QrisImageURL, req.MerchantID, req.Description, req.SortOrder, req.IsPublic, tenantID, id)
 	if err != nil {
@@ -108,8 +108,8 @@ func (r *repository) UpdateDonationChannel(ctx context.Context, tenantID string,
 	return nil
 }
 
-func (r *repository) DeleteDonationChannel(ctx context.Context, tenantID string, id int64) error {
-	tag, err := r.db.Exec(ctx, `DELETE FROM donation_channels WHERE tenant_id=$1 AND id=$2`, tenantID, id)
+func (r *repository) DeleteStaticPaymentMethod(ctx context.Context, tenantID string, id int64) error {
+	tag, err := r.db.Exec(ctx, `DELETE FROM static_payment_methods WHERE tenant_id=$1 AND id=$2`, tenantID, id)
 	if err != nil {
 		return err
 	}
@@ -119,25 +119,25 @@ func (r *repository) DeleteDonationChannel(ctx context.Context, tenantID string,
 	return nil
 }
 
-func (r *repository) ListPublicDonationChannels(ctx context.Context, hostname string, q ListQuery) ([]DonationChannelResponse, int64, error) {
+func (r *repository) ListPublicStaticPaymentMethods(ctx context.Context, hostname string, q ListQuery) ([]StaticPaymentMethodResponse, int64, error) {
 	tenantID, err := r.resolveTenantByHostname(ctx, hostname)
 	if err != nil {
 		return nil, 0, err
 	}
 	var total int64
-	if err := r.db.QueryRow(ctx, `SELECT COUNT(*) FROM donation_channels WHERE tenant_id=$1 AND is_public=true`, tenantID).Scan(&total); err != nil {
+	if err := r.db.QueryRow(ctx, `SELECT COUNT(*) FROM static_payment_methods WHERE tenant_id=$1 AND is_public=true`, tenantID).Scan(&total); err != nil {
 		return nil, 0, err
 	}
 	offset := (q.Page - 1) * q.Limit
 	rows, err := r.db.Query(ctx, `SELECT id,channel_type::text,label,bank_name,bank_branch,account_number,account_holder_name,qris_image_url,merchant_id,description,sort_order,is_public
-		FROM donation_channels WHERE tenant_id=$1 AND is_public=true ORDER BY sort_order ASC,id DESC LIMIT $2 OFFSET $3`, tenantID, q.Limit, offset)
+		FROM static_payment_methods WHERE tenant_id=$1 AND is_public=true ORDER BY sort_order ASC,id DESC LIMIT $2 OFFSET $3`, tenantID, q.Limit, offset)
 	if err != nil {
 		return nil, 0, err
 	}
 	defer rows.Close()
-	var items []DonationChannelResponse
+	var items []StaticPaymentMethodResponse
 	for rows.Next() {
-		var it DonationChannelResponse
+		var it StaticPaymentMethodResponse
 		if err := rows.Scan(&it.ID, &it.ChannelType, &it.Label, &it.BankName, &it.BankBranch, &it.AccountNumber, &it.AccountHolderName, &it.QrisImageURL, &it.MerchantID, &it.Description, &it.SortOrder, &it.IsPublic); err != nil {
 			return nil, 0, err
 		}

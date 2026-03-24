@@ -17,7 +17,7 @@ func TestRepositoryIntegrationEngagement(t *testing.T) {
 	repo := NewRepository(db)
 	ctx := context.Background()
 
-	donationRes, err := repo.CreateDonationChannel(ctx, tenant.ID, DonationChannelPayload{
+	donationRes, err := repo.CreateStaticPaymentMethod(ctx, tenant.ID, StaticPaymentMethodPayload{
 		ChannelType:       "bank_account",
 		Label:             "BSI Integrasi",
 		BankName:          ptr("BSI"),
@@ -27,29 +27,29 @@ func TestRepositoryIntegrationEngagement(t *testing.T) {
 		IsPublic:          true,
 	})
 	if err != nil {
-		t.Fatalf("CreateDonationChannel failed: %v", err)
+		t.Fatalf("CreateStaticPaymentMethod failed: %v", err)
 	}
 	if donationRes.ID == 0 {
-		t.Fatal("CreateDonationChannel returned empty id")
+		t.Fatal("CreateStaticPaymentMethod returned empty id")
 	}
 
-	donationList, totalDonation, err := repo.ListDonationChannels(ctx, tenant.ID, ListQuery{Page: 1, Limit: 10})
+	donationList, totalDonation, err := repo.ListStaticPaymentMethods(ctx, tenant.ID, ListQuery{Page: 1, Limit: 10})
 	if err != nil {
-		t.Fatalf("ListDonationChannels failed: %v", err)
+		t.Fatalf("ListStaticPaymentMethods failed: %v", err)
 	}
 	if totalDonation < 1 || len(donationList) < 1 {
-		t.Fatalf("ListDonationChannels expected data, total=%d len=%d", totalDonation, len(donationList))
+		t.Fatalf("ListStaticPaymentMethods expected data, total=%d len=%d", totalDonation, len(donationList))
 	}
 
-	gotDonation, err := repo.GetDonationChannel(ctx, tenant.ID, donationRes.ID)
+	gotDonation, err := repo.GetStaticPaymentMethod(ctx, tenant.ID, donationRes.ID)
 	if err != nil {
-		t.Fatalf("GetDonationChannel failed: %v", err)
+		t.Fatalf("GetStaticPaymentMethod failed: %v", err)
 	}
 	if gotDonation.Label != "BSI Integrasi" {
 		t.Fatalf("unexpected donation label: %s", gotDonation.Label)
 	}
 
-	if err := repo.UpdateDonationChannel(ctx, tenant.ID, donationRes.ID, DonationChannelPayload{
+	if err := repo.UpdateStaticPaymentMethod(ctx, tenant.ID, donationRes.ID, StaticPaymentMethodPayload{
 		ChannelType:       "bank_account",
 		Label:             "BSI Integrasi Updated",
 		BankName:          ptr("BSI"),
@@ -58,7 +58,7 @@ func TestRepositoryIntegrationEngagement(t *testing.T) {
 		SortOrder:         1,
 		IsPublic:          true,
 	}); err != nil {
-		t.Fatalf("UpdateDonationChannel failed: %v", err)
+		t.Fatalf("UpdateStaticPaymentMethod failed: %v", err)
 	}
 
 	socialRes, err := repo.CreateSocialLink(ctx, tenant.ID, SocialLinkPayload{
@@ -89,12 +89,12 @@ func TestRepositoryIntegrationEngagement(t *testing.T) {
 		t.Fatal("CreateExternalLink returned empty id")
 	}
 
-	publicDonation, _, err := repo.ListPublicDonationChannels(ctx, tenant.Hostname, ListQuery{Page: 1, Limit: 10})
+	publicDonation, _, err := repo.ListPublicStaticPaymentMethods(ctx, tenant.Hostname, ListQuery{Page: 1, Limit: 10})
 	if err != nil {
-		t.Fatalf("ListPublicDonationChannels failed: %v", err)
+		t.Fatalf("ListPublicStaticPaymentMethods failed: %v", err)
 	}
 	if len(publicDonation) < 1 {
-		t.Fatal("ListPublicDonationChannels expected data")
+		t.Fatal("ListPublicStaticPaymentMethods expected data")
 	}
 
 	publicSocial, _, err := repo.ListPublicSocialLinks(ctx, tenant.Hostname, ListQuery{Page: 1, Limit: 10})
@@ -157,8 +157,8 @@ func TestRepositoryIntegrationEngagement(t *testing.T) {
 	if err := repo.DeleteExternalLink(ctx, tenant.ID, externalRes.ID); err != nil {
 		t.Fatalf("DeleteExternalLink failed: %v", err)
 	}
-	if err := repo.DeleteDonationChannel(ctx, tenant.ID, donationRes.ID); err != nil {
-		t.Fatalf("DeleteDonationChannel failed: %v", err)
+	if err := repo.DeleteStaticPaymentMethod(ctx, tenant.ID, donationRes.ID); err != nil {
+		t.Fatalf("DeleteStaticPaymentMethod failed: %v", err)
 	}
 }
 

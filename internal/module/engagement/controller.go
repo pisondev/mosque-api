@@ -11,12 +11,12 @@ import (
 )
 
 type Controller interface {
-	ListDonationChannels(c *fiber.Ctx) error
-	CreateDonationChannel(c *fiber.Ctx) error
-	GetDonationChannel(c *fiber.Ctx) error
-	UpdateDonationChannel(c *fiber.Ctx) error
-	DeleteDonationChannel(c *fiber.Ctx) error
-	ListPublicDonationChannels(c *fiber.Ctx) error
+	ListStaticPaymentMethods(c *fiber.Ctx) error
+	CreateStaticPaymentMethod(c *fiber.Ctx) error
+	GetStaticPaymentMethod(c *fiber.Ctx) error
+	UpdateStaticPaymentMethod(c *fiber.Ctx) error
+	DeleteStaticPaymentMethod(c *fiber.Ctx) error
+	ListPublicStaticPaymentMethods(c *fiber.Ctx) error
 	ListSocialLinks(c *fiber.Ctx) error
 	CreateSocialLink(c *fiber.Ctx) error
 	GetSocialLink(c *fiber.Ctx) error
@@ -44,76 +44,76 @@ func NewController(service Service, log *logrus.Logger) Controller {
 	return &controller{service: service, log: log}
 }
 
-func (ctrl *controller) ListDonationChannels(c *fiber.Ctx) error {
+func (ctrl *controller) ListStaticPaymentMethods(c *fiber.Ctx) error {
 	tenantID, ok := getTenantID(c)
 	if !ok {
 		return nil
 	}
 	page, limit := pageLimit(c)
-	items, total, err := ctrl.service.ListDonationChannels(c.Context(), tenantID, ListQuery{Page: page, Limit: limit})
+	items, total, err := ctrl.service.ListStaticPaymentMethods(c.Context(), tenantID, ListQuery{Page: page, Limit: limit})
 	if err != nil {
 		return handleErr(c, err)
 	}
 	return response.Success(c, fiber.StatusOK, "donation channels loaded", items, fiber.Map{"page": page, "limit": limit, "total": total})
 }
 
-func (ctrl *controller) CreateDonationChannel(c *fiber.Ctx) error {
+func (ctrl *controller) CreateStaticPaymentMethod(c *fiber.Ctx) error {
 	tenantID, ok := getTenantID(c)
 	if !ok {
 		return nil
 	}
-	var req DonationChannelPayload
+	var req StaticPaymentMethodPayload
 	if err := c.BodyParser(&req); err != nil || req.ChannelType == "" || req.Label == "" {
 		return response.Validation(c, "validation failed", []response.FieldError{{Field: "payload", Message: "channel_type and label are required"}})
 	}
-	item, err := ctrl.service.CreateDonationChannel(c.Context(), tenantID, req)
+	item, err := ctrl.service.CreateStaticPaymentMethod(c.Context(), tenantID, req)
 	if err != nil {
 		return handleErr(c, err)
 	}
 	return response.Success(c, fiber.StatusCreated, "donation channel created", item, nil)
 }
 
-func (ctrl *controller) GetDonationChannel(c *fiber.Ctx) error {
+func (ctrl *controller) GetStaticPaymentMethod(c *fiber.Ctx) error {
 	tenantID, id, ok := tenantAndID(c)
 	if !ok {
 		return nil
 	}
-	item, err := ctrl.service.GetDonationChannel(c.Context(), tenantID, id)
+	item, err := ctrl.service.GetStaticPaymentMethod(c.Context(), tenantID, id)
 	if err != nil {
 		return handleErr(c, err)
 	}
 	return response.Success(c, fiber.StatusOK, "donation channel loaded", item, nil)
 }
 
-func (ctrl *controller) UpdateDonationChannel(c *fiber.Ctx) error {
+func (ctrl *controller) UpdateStaticPaymentMethod(c *fiber.Ctx) error {
 	tenantID, id, ok := tenantAndID(c)
 	if !ok {
 		return nil
 	}
-	var req DonationChannelPayload
+	var req StaticPaymentMethodPayload
 	if err := c.BodyParser(&req); err != nil {
 		return response.Validation(c, "validation failed", []response.FieldError{{Field: "body", Message: "invalid request format"}})
 	}
-	if err := ctrl.service.UpdateDonationChannel(c.Context(), tenantID, id, req); err != nil {
+	if err := ctrl.service.UpdateStaticPaymentMethod(c.Context(), tenantID, id, req); err != nil {
 		return handleErr(c, err)
 	}
 	return response.Success(c, fiber.StatusOK, "donation channel updated", nil, nil)
 }
 
-func (ctrl *controller) DeleteDonationChannel(c *fiber.Ctx) error {
+func (ctrl *controller) DeleteStaticPaymentMethod(c *fiber.Ctx) error {
 	tenantID, id, ok := tenantAndID(c)
 	if !ok {
 		return nil
 	}
-	if err := ctrl.service.DeleteDonationChannel(c.Context(), tenantID, id); err != nil {
+	if err := ctrl.service.DeleteStaticPaymentMethod(c.Context(), tenantID, id); err != nil {
 		return handleErr(c, err)
 	}
 	return response.Success(c, fiber.StatusOK, "donation channel deleted", nil, nil)
 }
 
-func (ctrl *controller) ListPublicDonationChannels(c *fiber.Ctx) error {
+func (ctrl *controller) ListPublicStaticPaymentMethods(c *fiber.Ctx) error {
 	page, limit := pageLimit(c)
-	items, total, err := ctrl.service.ListPublicDonationChannels(c.Context(), c.Params("hostname"), ListQuery{Page: page, Limit: limit})
+	items, total, err := ctrl.service.ListPublicStaticPaymentMethods(c.Context(), c.Params("hostname"), ListQuery{Page: page, Limit: limit})
 	if err != nil {
 		return handleErr(c, err)
 	}

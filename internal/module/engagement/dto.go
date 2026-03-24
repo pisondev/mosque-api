@@ -1,6 +1,6 @@
 package engagement
 
-type DonationChannelPayload struct {
+type StaticPaymentMethodPayload struct {
 	ChannelType       string  `json:"channel_type"`
 	Label             string  `json:"label"`
 	BankName          *string `json:"bank_name"`
@@ -14,7 +14,7 @@ type DonationChannelPayload struct {
 	IsPublic          bool    `json:"is_public"`
 }
 
-type DonationChannelResponse struct {
+type StaticPaymentMethodResponse struct {
 	ID                int64   `json:"id"`
 	ChannelType       string  `json:"channel_type"`
 	Label             string  `json:"label"`

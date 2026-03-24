@@ -7,12 +7,12 @@ import (
 )
 
 type Service interface {
-	ListDonationChannels(ctx context.Context, tenantID string, q ListQuery) ([]DonationChannelResponse, int64, error)
-	CreateDonationChannel(ctx context.Context, tenantID string, req DonationChannelPayload) (*DonationChannelResponse, error)
-	GetDonationChannel(ctx context.Context, tenantID string, id int64) (*DonationChannelResponse, error)
-	UpdateDonationChannel(ctx context.Context, tenantID string, id int64, req DonationChannelPayload) error
-	DeleteDonationChannel(ctx context.Context, tenantID string, id int64) error
-	ListPublicDonationChannels(ctx context.Context, hostname string, q ListQuery) ([]DonationChannelResponse, int64, error)
+	ListStaticPaymentMethods(ctx context.Context, tenantID string, q ListQuery) ([]StaticPaymentMethodResponse, int64, error)
+	CreateStaticPaymentMethod(ctx context.Context, tenantID string, req StaticPaymentMethodPayload) (*StaticPaymentMethodResponse, error)
+	GetStaticPaymentMethod(ctx context.Context, tenantID string, id int64) (*StaticPaymentMethodResponse, error)
+	UpdateStaticPaymentMethod(ctx context.Context, tenantID string, id int64, req StaticPaymentMethodPayload) error
+	DeleteStaticPaymentMethod(ctx context.Context, tenantID string, id int64) error
+	ListPublicStaticPaymentMethods(ctx context.Context, hostname string, q ListQuery) ([]StaticPaymentMethodResponse, int64, error)
 	ListSocialLinks(ctx context.Context, tenantID string, q ListQuery) ([]SocialLinkResponse, int64, error)
 	CreateSocialLink(ctx context.Context, tenantID string, req SocialLinkPayload) (*SocialLinkResponse, error)
 	GetSocialLink(ctx context.Context, tenantID string, id int64) (*SocialLinkResponse, error)
@@ -40,23 +40,23 @@ func NewService(repo Repository, log *logrus.Logger) Service {
 	return &service{repo: repo, log: log}
 }
 
-func (s *service) ListDonationChannels(ctx context.Context, tenantID string, q ListQuery) ([]DonationChannelResponse, int64, error) {
-	return s.repo.ListDonationChannels(ctx, tenantID, q)
+func (s *service) ListStaticPaymentMethods(ctx context.Context, tenantID string, q ListQuery) ([]StaticPaymentMethodResponse, int64, error) {
+	return s.repo.ListStaticPaymentMethods(ctx, tenantID, q)
 }
-func (s *service) CreateDonationChannel(ctx context.Context, tenantID string, req DonationChannelPayload) (*DonationChannelResponse, error) {
-	return s.repo.CreateDonationChannel(ctx, tenantID, req)
+func (s *service) CreateStaticPaymentMethod(ctx context.Context, tenantID string, req StaticPaymentMethodPayload) (*StaticPaymentMethodResponse, error) {
+	return s.repo.CreateStaticPaymentMethod(ctx, tenantID, req)
 }
-func (s *service) GetDonationChannel(ctx context.Context, tenantID string, id int64) (*DonationChannelResponse, error) {
-	return s.repo.GetDonationChannel(ctx, tenantID, id)
+func (s *service) GetStaticPaymentMethod(ctx context.Context, tenantID string, id int64) (*StaticPaymentMethodResponse, error) {
+	return s.repo.GetStaticPaymentMethod(ctx, tenantID, id)
 }
-func (s *service) UpdateDonationChannel(ctx context.Context, tenantID string, id int64, req DonationChannelPayload) error {
-	return s.repo.UpdateDonationChannel(ctx, tenantID, id, req)
+func (s *service) UpdateStaticPaymentMethod(ctx context.Context, tenantID string, id int64, req StaticPaymentMethodPayload) error {
+	return s.repo.UpdateStaticPaymentMethod(ctx, tenantID, id, req)
 }
-func (s *service) DeleteDonationChannel(ctx context.Context, tenantID string, id int64) error {
-	return s.repo.DeleteDonationChannel(ctx, tenantID, id)
+func (s *service) DeleteStaticPaymentMethod(ctx context.Context, tenantID string, id int64) error {
+	return s.repo.DeleteStaticPaymentMethod(ctx, tenantID, id)
 }
-func (s *service) ListPublicDonationChannels(ctx context.Context, hostname string, q ListQuery) ([]DonationChannelResponse, int64, error) {
-	return s.repo.ListPublicDonationChannels(ctx, hostname, q)
+func (s *service) ListPublicStaticPaymentMethods(ctx context.Context, hostname string, q ListQuery) ([]StaticPaymentMethodResponse, int64, error) {
+	return s.repo.ListPublicStaticPaymentMethods(ctx, hostname, q)
 }
 func (s *service) ListSocialLinks(ctx context.Context, tenantID string, q ListQuery) ([]SocialLinkResponse, int64, error) {
 	return s.repo.ListSocialLinks(ctx, tenantID, q)
