@@ -164,7 +164,17 @@ func (ctrl *controller) ListCampaigns(c *fiber.Ctx) error {
 }
 
 func (ctrl *controller) ListPublicCampaigns(c *fiber.Ctx) error {
-	return response.Success(c, fiber.StatusOK, "List kampanye publik", []CampaignResponse{}, nil)
+	hostname := c.Params("hostname")
+	q := getPagination(c)
+
+	data, total, err := ctrl.svc.ListPublicCampaigns(c.Context(), hostname, q)
+	if err != nil {
+		ctrl.log.Error(err)
+		return response.Error(c, fiber.StatusInternalServerError, "Gagal mengambil daftar kampanye")
+	}
+
+	meta := fiber.Map{"page": q.Page, "limit": q.Limit, "total": total}
+	return response.Success(c, fiber.StatusOK, "Berhasil mengambil daftar kampanye", data, meta)
 }
 
 func (ctrl *controller) ListTransactions(c *fiber.Ctx) error {
@@ -186,5 +196,19 @@ func (ctrl *controller) ListTransactions(c *fiber.Ctx) error {
 }
 
 func (ctrl *controller) ListPublicDonors(c *fiber.Ctx) error {
-	return response.Success(c, fiber.StatusOK, "List donatur publik", []TransactionResponse{}, nil)
+	hostname := c.Params("hostname")
+	campaignID, err := strconv.ParseInt(c.Params("id"), 10, 64)
+	if err != nil {
+		return response.Error(c, fiber.StatusBadRequest, "ID kampanye tidak valid")
+	}
+	q := getPagination(c)
+
+	data, total, err := ctrl.svc.ListPublicDonors(c.Context(), hostname, campaignID, q)
+	if err != nil {
+		ctrl.log.Error(err)
+		return response.Error(c, fiber.StatusInternalServerError, "Gagal mengambil daftar donatur")
+	}
+
+	meta := fiber.Map{"page": q.Page, "limit": q.Limit, "total": total}
+	return response.Success(c, fiber.StatusOK, "Berhasil mengambil daftar donatur", data, meta)
 }
