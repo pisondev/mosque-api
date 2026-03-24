@@ -2,6 +2,10 @@ package finance
 
 import (
 	"context"
+	"errors"
+
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type Repository interface {
@@ -19,4 +23,144 @@ type Repository interface {
 	// Transactions (Read only for now, Create & Update will be in Tahap 4)
 	ListTransactions(ctx context.Context, tenantID string, campaignID int64, q ListQuery) ([]TransactionResponse, int64, error)
 	ListPublicDonors(ctx context.Context, tenantID string, campaignID int64, q ListQuery) ([]TransactionResponse, int64, error)
+}
+
+type repository struct {
+	db *pgxpool.Pool
+}
+
+func NewRepository(db *pgxpool.Pool) Repository {
+	return &repository{db: db}
+}
+
+// Helper untuk pagination
+func getOffset(page, limit int) int {
+	if page < 1 {
+		page = 1
+	}
+	if limit < 1 {
+		limit = 10
+	}
+	return (page - 1) * limit
+}
+
+// ==========================================
+// PG CONFIGURATIONS
+// ==========================================
+
+func (r *repository) GetPGConfig(ctx context.Context, tenantID string) (*PGConfigResponse, error) {
+	query := `
+		SELECT id, use_central_pg, provider, client_key, is_production, is_active
+		FROM pg_configs
+		WHERE tenant_id = $1
+	`
+	var res PGConfigResponse
+	err := r.db.QueryRow(ctx, query, tenantID).Scan(
+		&res.ID, &res.UseCentralPG, &res.Provider, &res.ClientKey, &res.IsProduction, &res.IsActive,
+	)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, nil // Return nil tanpa error jika masjid belum punya config
+		}
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (r *repository) UpsertPGConfig(ctx context.Context, tenantID string, req PGConfigPayload) error {
+	query := `
+		INSERT INTO pg_configs (tenant_id, use_central_pg, provider, client_key, server_key, is_production)
+		VALUES ($1, $2, $3, $4, $5, $6)
+		ON CONFLICT (tenant_id) DO UPDATE SET
+			use_central_pg = EXCLUDED.use_central_pg,
+			provider = EXCLUDED.provider,
+			client_key = EXCLUDED.client_key,
+			server_key = EXCLUDED.server_key,
+			is_production = EXCLUDED.is_production,
+			updated_at = NOW()
+	`
+	_, err := r.db.Exec(ctx, query, tenantID, req.UseCentralPG, req.Provider, req.ClientKey, req.ServerKey, req.IsProduction)
+	return err
+}
+
+// ==========================================
+// DONATION CAMPAIGNS
+// ==========================================
+
+func (r *repository) CreateCampaign(ctx context.Context, tenantID string, req CampaignPayload) (*CampaignResponse, error) {
+	query := `
+		INSERT INTO donation_campaigns (tenant_id, title, slug, description, image_url, target_amount, start_date, end_date, is_active)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+		RETURNING id, title, slug, description, image_url, target_amount, collected_amount, start_date, end_date, is_active
+	`
+	var res CampaignResponse
+	err := r.db.QueryRow(ctx, query, tenantID, req.Title, req.Slug, req.Description, req.ImageURL, req.TargetAmount, req.StartDate, req.EndDate, req.IsActive).Scan(
+		&res.ID, &res.Title, &res.Slug, &res.Description, &res.ImageURL, &res.TargetAmount, &res.CollectedAmount, &res.StartDate, &res.EndDate, &res.IsActive,
+	)
+	if err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (r *repository) GetCampaign(ctx context.Context, tenantID string, id int64) (*CampaignResponse, error) {
+	query := `
+		SELECT id, title, slug, description, image_url, target_amount, collected_amount, start_date, end_date, is_active
+		FROM donation_campaigns
+		WHERE tenant_id = $1 AND id = $2
+	`
+	var res CampaignResponse
+	err := r.db.QueryRow(ctx, query, tenantID, id).Scan(
+		&res.ID, &res.Title, &res.Slug, &res.Description, &res.ImageURL, &res.TargetAmount, &res.CollectedAmount, &res.StartDate, &res.EndDate, &res.IsActive,
+	)
+	if err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (r *repository) GetCampaignBySlug(ctx context.Context, tenantID string, slug string) (*CampaignResponse, error) {
+	query := `
+		SELECT id, title, slug, description, image_url, target_amount, collected_amount, start_date, end_date, is_active
+		FROM donation_campaigns
+		WHERE tenant_id = $1 AND slug = $2 AND is_active = true
+	`
+	var res CampaignResponse
+	err := r.db.QueryRow(ctx, query, tenantID, slug).Scan(
+		&res.ID, &res.Title, &res.Slug, &res.Description, &res.ImageURL, &res.TargetAmount, &res.CollectedAmount, &res.StartDate, &res.EndDate, &res.IsActive,
+	)
+	if err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (r *repository) UpdateCampaign(ctx context.Context, tenantID string, id int64, req CampaignPayload) error {
+	query := `
+		UPDATE donation_campaigns
+		SET title = $1, slug = $2, description = $3, image_url = $4, target_amount = $5, start_date = $6, end_date = $7, is_active = $8, updated_at = NOW()
+		WHERE tenant_id = $9 AND id = $10
+	`
+	cmdTag, err := r.db.Exec(ctx, query, req.Title, req.Slug, req.Description, req.ImageURL, req.TargetAmount, req.StartDate, req.EndDate, req.IsActive, tenantID, id)
+	if err != nil {
+		return err
+	}
+	if cmdTag.RowsAffected() == 0 {
+		return pgx.ErrNoRows
+	}
+	return nil
+}
+
+// Untuk sementara kita biarkan return kosong dulu untuk List queries agar file tidak terlalu raksasa di awal
+// Nanti bisa kita isi query SELECT dengan ORDER BY dan LIMIT OFFSET
+func (r *repository) ListCampaigns(ctx context.Context, tenantID string, q ListQuery) ([]CampaignResponse, int64, error) {
+	return []CampaignResponse{}, 0, nil
+}
+
+func (r *repository) ListTransactions(ctx context.Context, tenantID string, campaignID int64, q ListQuery) ([]TransactionResponse, int64, error) {
+	return []TransactionResponse{}, 0, nil
+}
+
+func (r *repository) ListPublicDonors(ctx context.Context, tenantID string, campaignID int64, q ListQuery) ([]TransactionResponse, int64, error) {
+	return []TransactionResponse{}, 0, nil
 }
