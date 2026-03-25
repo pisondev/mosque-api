@@ -5,6 +5,7 @@ import (
 	fiberSwagger "github.com/gofiber/swagger"
 	"github.com/jackc/pgx/v5/pgxpool"
 	_ "github.com/pisondev/mosque-api/docs"
+	"github.com/pisondev/mosque-api/internal/constant"
 	"github.com/pisondev/mosque-api/internal/middleware"
 	"github.com/pisondev/mosque-api/internal/module/auth"
 	"github.com/pisondev/mosque-api/internal/module/community"
@@ -81,6 +82,8 @@ func SetupRoutes(app *fiber.App, db *pgxpool.Pool, log *logrus.Logger) {
 
 	tenantGroup.Get("/static-pages", managementController.ListStaticPages)
 	tenantGroup.Put("/static-pages/:slug", managementController.UpsertStaticPage)
+	// Endpoint SaaS State untuk Frontend
+	tenantGroup.Get("/billing-status", managementController.GetBillingStatus)
 
 	tenantGroup.Get("/prayer-time-settings", worshipController.GetPrayerTimeSettings)
 	tenantGroup.Put("/prayer-time-settings", worshipController.UpsertPrayerTimeSettings)
@@ -146,15 +149,17 @@ func SetupRoutes(app *fiber.App, db *pgxpool.Pool, log *logrus.Logger) {
 	// ==========================================
 	// FINANCE & DONATION ROUTES (PROTECTED)
 	// ==========================================
-	tenantGroup.Get("/pg-config", financeController.GetPGConfig)
-	tenantGroup.Put("/pg-config", financeController.UpsertPGConfig)
+	// Semua fitur donasi digital butuh paket PRO++ atau MAX+++
 
-	tenantGroup.Get("/campaigns", financeController.ListCampaigns)
-	tenantGroup.Post("/campaigns", financeController.CreateCampaign)
-	tenantGroup.Get("/campaigns/:id", financeController.GetCampaign)
-	tenantGroup.Put("/campaigns/:id", financeController.UpdateCampaign)
+	tenantGroup.Get("/pg-config", middleware.RequireFeature(db, constant.FeaturePGDigital), financeController.GetPGConfig)
+	tenantGroup.Put("/pg-config", middleware.RequireFeature(db, constant.FeaturePGDigital), financeController.UpsertPGConfig)
 
-	tenantGroup.Get("/campaigns/:id/transactions", financeController.ListTransactions)
+	tenantGroup.Get("/campaigns", middleware.RequireFeature(db, constant.FeaturePGDigital), financeController.ListCampaigns)
+	tenantGroup.Post("/campaigns", middleware.RequireFeature(db, constant.FeaturePGDigital), financeController.CreateCampaign)
+	tenantGroup.Get("/campaigns/:id", middleware.RequireFeature(db, constant.FeaturePGDigital), financeController.GetCampaign)
+	tenantGroup.Put("/campaigns/:id", middleware.RequireFeature(db, constant.FeaturePGDigital), financeController.UpdateCampaign)
+
+	tenantGroup.Get("/campaigns/:id/transactions", middleware.RequireFeature(db, constant.FeaturePGDigital), financeController.ListTransactions)
 
 	publicGroup := api.Group("/public/:hostname")
 	publicGroup.Get("/events", communityController.ListPublicEvents)
