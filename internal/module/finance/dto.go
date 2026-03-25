@@ -21,9 +21,9 @@ type PGConfigResponse struct {
 	UseCentralPG bool   `json:"use_central_pg"`
 	Provider     string `json:"provider"`
 	ClientKey    string `json:"client_key"`
+	ServerKey    string `json:"-"` // <-- Tambahkan ini. json:"-" = diabaikan saat jadi JSON
 	IsProduction bool   `json:"is_production"`
 	IsActive     bool   `json:"is_active"`
-	// ServerKey sengaja tidak dikembalikan di response demi keamanan
 }
 
 // ==========================================

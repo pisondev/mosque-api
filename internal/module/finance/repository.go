@@ -64,18 +64,20 @@ func (r *repository) GetTenantIDByHostname(ctx context.Context, hostname string)
 // ==========================================
 
 func (r *repository) GetPGConfig(ctx context.Context, tenantID string) (*PGConfigResponse, error) {
+	// Tambahkan server_key pada query
 	query := `
-		SELECT id, use_central_pg, provider, client_key, is_production, is_active
+		SELECT id, use_central_pg, provider, client_key, server_key, is_production, is_active
 		FROM pg_configs
 		WHERE tenant_id = $1
 	`
 	var res PGConfigResponse
+	// Tambahkan &res.ServerKey pada bagian Scan
 	err := r.db.QueryRow(ctx, query, tenantID).Scan(
-		&res.ID, &res.UseCentralPG, &res.Provider, &res.ClientKey, &res.IsProduction, &res.IsActive,
+		&res.ID, &res.UseCentralPG, &res.Provider, &res.ClientKey, &res.ServerKey, &res.IsProduction, &res.IsActive,
 	)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return nil, nil // Return nil tanpa error jika masjid belum punya config
+			return nil, nil
 		}
 		return nil, err
 	}
