@@ -7,7 +7,7 @@
 # Taruh token JWT admin masjid di sini (tanpa kata Bearer)
 @token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InBpc29uLmdtLmRldkBnbWFpbC5jb20iLCJleHAiOjE3NzQ5ODMyNjMsInJvbGUiOiJhZG1pbiIsInRlbmFudF9pZCI6ImU1YWE1MWQ4LTdjMWUtNDY5Ny05NDA2LTljYWY3YzcwMWIzNSIsInVzZXJfaWQiOiJ1c2VyLXV1aWQtdGVzdGluZy0xMjMifQ.WwERel9FB1jmAzBGpYsGYaxQnYMNc8GMewyJDebE1L4 
 @hostname = masjid-alikhlas.com
-@campaignId = 1
+@campaignId = 2
 @staticPaymentId = 1
 
 ### ============================================================================
@@ -160,9 +160,23 @@ GET {{baseUrl}}/public/{{hostname}}/campaigns?page=1&limit=10
 ###
 
 ### Get Campaign Detail by Slug (Ganti slug sesuai yang di-generate)
-GET {{baseUrl}}/public/{{hostname}}/campaigns/pembebasan-lahan-parkir-masjid
+GET {{baseUrl}}/public/{{hostname}}/campaigns/penambahan-ac-aula
 
 ###
 
 ### Get Public Donors (Transparansi - Hanya yang PAID)
 GET {{baseUrl}}/public/{{hostname}}/campaigns/{{campaignId}}/donors?page=1&limit=10
+
+
+### Get Campaign Detail by Slug
+GET {{baseUrl}}/public/{{hostname}}/campaigns/penambahan-ac-aula
+
+### Create Donation Checkout (Generate Midtrans URL)
+POST {{baseUrl}}/public/{{hostname}}/campaigns/{{campaignId}}/donate
+Content-Type: application/json
+
+{
+    "donor_name": "Pison Golda",
+    "is_anonymous": false,
+    "amount": 50000
+}
