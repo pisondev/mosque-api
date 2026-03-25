@@ -180,3 +180,11 @@ Content-Type: application/json
     "is_anonymous": false,
     "amount": 50000
 }
+
+### 1. Cek Status Billing (Harusnya paket "free")
+GET {{baseUrl}}/tenant/billing-status
+Authorization: Bearer {{token}}
+
+### 2. Uji Coba Tembak Fitur Berbayar (Harusnya DITOLAK 403 Forbidden)
+GET {{baseUrl}}/tenant/pg-config
+Authorization: Bearer {{token}}
