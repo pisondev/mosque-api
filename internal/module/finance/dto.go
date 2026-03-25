@@ -81,3 +81,18 @@ type ListQuery struct {
 	Page  int
 	Limit int
 }
+
+// ==========================================
+// WEBHOOK / MIDTRANS NOTIFICATION
+// ==========================================
+
+type MidtransNotificationPayload struct {
+	TransactionStatus string `json:"transaction_status"`
+	OrderID           string `json:"order_id"`
+	GrossAmount       string `json:"gross_amount"`
+	PaymentType       string `json:"payment_type"`
+	SignatureKey      string `json:"signature_key"`
+	StatusCode        string `json:"status_code"`
+	TransactionTime   string `json:"transaction_time"`
+	FraudStatus       string `json:"fraud_status"`
+}

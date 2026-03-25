@@ -32,6 +32,9 @@ type Repository interface {
 
 	ListPublicCampaigns(ctx context.Context, hostname string, q ListQuery) ([]CampaignResponse, int64, error)
 	GetPublicCampaignBySlug(ctx context.Context, hostname string, slug string) (*CampaignResponse, error)
+
+	// Webhook Handler
+	ProcessWebhookTransaction(ctx context.Context, orderID string, status string, paymentMethod string) error
 }
 
 type repository struct {
@@ -401,4 +404,76 @@ func (r *repository) GetPublicCampaignBySlug(ctx context.Context, hostname strin
 		return nil, err
 	}
 	return &res, nil
+}
+
+// ==========================================
+// WEBHOOK HANDLER (DB TRANSACTION & ROW LOCKING)
+// ==========================================
+
+func (r *repository) ProcessWebhookTransaction(ctx context.Context, orderID string, status string, paymentMethod string) error {
+	// 1. Mulai DB Transaction
+	tx, err := r.db.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	// Pastikan rollback jika terjadi panic atau error sebelum commit
+	defer tx.Rollback(ctx)
+
+	// 2. Kunci baris transaksi ini agar tidak diubah proses lain (Row Locking)
+	var currentStatus string
+	var campaignID int64
+	var amount float64
+
+	lockQuery := `
+		SELECT status, campaign_id, amount 
+		FROM donation_transactions 
+		WHERE id = $1 
+		FOR UPDATE
+	`
+	err = tx.QueryRow(ctx, lockQuery, orderID).Scan(&currentStatus, &campaignID, &amount)
+	if err != nil {
+		return err // Transaksi tidak ditemukan
+	}
+
+	// 3. Cegah update berulang (Idempotency)
+	// Jika status di DB sudah paid/settlement, abaikan webhook ini (Midtrans sering kirim webhook multiple kali)
+	if currentStatus == "paid" {
+		return nil
+	}
+
+	// 4. Update status di tabel transaksi
+	// Mapping status Midtrans ke status lokal kita
+	localStatus := "pending"
+	switch status {
+	case "settlement", "capture":
+		localStatus = "paid"
+	case "expire", "cancel", "deny":
+		localStatus = "expired"
+	}
+
+	updateTxQuery := `
+		UPDATE donation_transactions 
+		SET status = $1, payment_method = $2, paid_at = NOW(), updated_at = NOW()
+		WHERE id = $3
+	`
+	_, err = tx.Exec(ctx, updateTxQuery, localStatus, paymentMethod, orderID)
+	if err != nil {
+		return err
+	}
+
+	// 5. Jika sukses dibayar (paid), tambah saldo di tabel kampanye
+	if localStatus == "paid" {
+		updateCampQuery := `
+			UPDATE donation_campaigns 
+			SET collected_amount = collected_amount + $1, updated_at = NOW()
+			WHERE id = $2
+		`
+		_, err = tx.Exec(ctx, updateCampQuery, amount, campaignID)
+		if err != nil {
+			return err
+		}
+	}
+
+	// 6. Selesai dan Commit!
+	return tx.Commit(ctx)
 }
