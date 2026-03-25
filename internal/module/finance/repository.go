@@ -27,6 +27,9 @@ type Repository interface {
 	ListTransactions(ctx context.Context, tenantID string, campaignID int64, q ListQuery) ([]TransactionResponse, int64, error)
 	ListPublicDonors(ctx context.Context, tenantID string, campaignID int64, q ListQuery) ([]TransactionResponse, int64, error)
 
+	CreateTransaction(ctx context.Context, tenantID string, req DonatePayload, status string) (*TransactionResponse, error)
+	UpdateTransactionPGInfo(ctx context.Context, transactionID string, snapToken string, paymentURL string) error
+
 	ListPublicCampaigns(ctx context.Context, hostname string, q ListQuery) ([]CampaignResponse, int64, error)
 	GetPublicCampaignBySlug(ctx context.Context, hostname string, slug string) (*CampaignResponse, error)
 }
@@ -292,6 +295,42 @@ func (r *repository) ListPublicDonors(ctx context.Context, tenantID string, camp
 	}
 
 	return txs, total, rows.Err()
+}
+
+// ==========================================
+// TRANSACTIONS (CREATE & UPDATE)
+// ==========================================
+
+func (r *repository) CreateTransaction(ctx context.Context, tenantID string, req DonatePayload, status string) (*TransactionResponse, error) {
+	query := `
+		INSERT INTO donation_transactions (tenant_id, campaign_id, donor_name, is_anonymous, amount, payment_method, status)
+		VALUES ($1, $2, $3, $4, $5, NULL, $6)
+		RETURNING id, donor_name, is_anonymous, amount, payment_method, status, paid_at
+	`
+	// Jika donor_name kosong dan anonymous, kita set default
+	if req.IsAnonymous && (req.DonorName == nil || *req.DonorName == "") {
+		hambaAllah := "Hamba Allah"
+		req.DonorName = &hambaAllah
+	}
+
+	var tx TransactionResponse
+	err := r.db.QueryRow(ctx, query, tenantID, req.CampaignID, req.DonorName, req.IsAnonymous, req.Amount, status).Scan(
+		&tx.TransactionID, &tx.DonorName, &tx.IsAnonymous, &tx.Amount, &tx.PaymentMethod, &tx.Status, &tx.PaidAt,
+	)
+	if err != nil {
+		return nil, err
+	}
+	return &tx, nil
+}
+
+func (r *repository) UpdateTransactionPGInfo(ctx context.Context, transactionID string, snapToken string, paymentURL string) error {
+	query := `
+		UPDATE donation_transactions 
+		SET snap_token = $1, payment_url = $2, updated_at = NOW()
+		WHERE id = $3
+	`
+	_, err := r.db.Exec(ctx, query, snapToken, paymentURL, transactionID)
+	return err
 }
 
 // ==========================================
