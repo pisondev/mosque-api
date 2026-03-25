@@ -168,5 +168,5 @@ func SetupRoutes(app *fiber.App, db *pgxpool.Pool, log *logrus.Logger) {
 	publicGroup.Get("/campaigns", financeController.ListPublicCampaigns)
 	publicGroup.Get("/campaigns/:slug", financeController.GetPublicCampaignBySlug)
 	publicGroup.Get("/campaigns/:id/donors", financeController.ListPublicDonors)
-	// POST /donate akan kita tambahkan nanti saat implementasi webhook/PG
+	publicGroup.Post("/campaigns/:id/donate", financeController.CreateDonation)
 }

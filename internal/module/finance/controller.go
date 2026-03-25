@@ -22,7 +22,7 @@ type Controller interface {
 
 	ListTransactions(c *fiber.Ctx) error
 	ListPublicDonors(c *fiber.Ctx) error
-	// CreateDonation(c *fiber.Ctx) error // Nanti di Tahap 4
+	CreateDonation(c *fiber.Ctx) error
 }
 
 type controller struct {
@@ -218,4 +218,31 @@ func (ctrl *controller) ListPublicDonors(c *fiber.Ctx) error {
 
 	meta := fiber.Map{"page": q.Page, "limit": q.Limit, "total": total}
 	return response.Success(c, fiber.StatusOK, "Berhasil mengambil daftar donatur", data, meta)
+}
+
+func (ctrl *controller) CreateDonation(c *fiber.Ctx) error {
+	hostname := c.Params("hostname")
+	campaignID, err := strconv.ParseInt(c.Params("id"), 10, 64)
+	if err != nil {
+		return response.Error(c, fiber.StatusBadRequest, "ID kampanye tidak valid")
+	}
+
+	var req DonatePayload
+	if err := c.BodyParser(&req); err != nil {
+		return response.Error(c, fiber.StatusBadRequest, "Format payload tidak valid")
+	}
+	req.CampaignID = campaignID // Pastikan ID dari URL dimasukkan ke payload
+
+	// Validasi dasar
+	if req.Amount < 10000 {
+		return response.Error(c, fiber.StatusBadRequest, "Minimal donasi adalah Rp 10.000")
+	}
+
+	res, err := ctrl.svc.CreateDonation(c.Context(), hostname, req)
+	if err != nil {
+		ctrl.log.Error(err)
+		return response.Error(c, fiber.StatusInternalServerError, err.Error())
+	}
+
+	return response.Success(c, fiber.StatusCreated, "Checkout berhasil, silakan lanjutkan pembayaran", res, nil)
 }
