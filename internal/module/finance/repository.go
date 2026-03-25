@@ -35,6 +35,7 @@ type Repository interface {
 
 	// Webhook Handler
 	ProcessWebhookTransaction(ctx context.Context, orderID string, status string, paymentMethod string) error
+	GetTenantIDByTransactionID(ctx context.Context, transactionID string) (string, error)
 }
 
 type repository struct {
@@ -476,4 +477,10 @@ func (r *repository) ProcessWebhookTransaction(ctx context.Context, orderID stri
 
 	// 6. Selesai dan Commit!
 	return tx.Commit(ctx)
+}
+
+func (r *repository) GetTenantIDByTransactionID(ctx context.Context, transactionID string) (string, error) {
+	var tenantID string
+	err := r.db.QueryRow(ctx, `SELECT tenant_id FROM donation_transactions WHERE id = $1`, transactionID).Scan(&tenantID)
+	return tenantID, err
 }

@@ -169,4 +169,10 @@ func SetupRoutes(app *fiber.App, db *pgxpool.Pool, log *logrus.Logger) {
 	publicGroup.Get("/campaigns/:slug", financeController.GetPublicCampaignBySlug)
 	publicGroup.Get("/campaigns/:id/donors", financeController.ListPublicDonors)
 	publicGroup.Post("/campaigns/:id/donate", financeController.CreateDonation)
+
+	// ==========================================
+	// WEBHOOK ROUTES (NO AUTH, NO HOSTNAME)
+	// ==========================================
+	webhookGroup := api.Group("/webhook")
+	webhookGroup.Post("/midtrans", financeController.MidtransWebhook)
 }

@@ -23,6 +23,8 @@ type Controller interface {
 	ListTransactions(c *fiber.Ctx) error
 	ListPublicDonors(c *fiber.Ctx) error
 	CreateDonation(c *fiber.Ctx) error
+
+	MidtransWebhook(c *fiber.Ctx) error
 }
 
 type controller struct {
@@ -245,4 +247,30 @@ func (ctrl *controller) CreateDonation(c *fiber.Ctx) error {
 	}
 
 	return response.Success(c, fiber.StatusCreated, "Checkout berhasil, silakan lanjutkan pembayaran", res, nil)
+}
+
+// ==========================================
+// WEBHOOK ENDPOINT
+// ==========================================
+
+func (ctrl *controller) MidtransWebhook(c *fiber.Ctx) error {
+	var payload MidtransNotificationPayload
+	if err := c.BodyParser(&payload); err != nil {
+		ctrl.log.Error("Gagal parsing webhook payload: ", err)
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"status": "error", "message": "invalid payload format"})
+	}
+
+	err := ctrl.svc.HandleMidtransWebhook(c.Context(), payload)
+	if err != nil {
+		// Jika signature salah, tolak dengan 403 Forbidden
+		if err.Error() == "invalid signature key" {
+			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{"status": "error", "message": "invalid signature"})
+		}
+		// Midtrans menyarankan mengembalikan 200 OK meskipun ada error internal agar mereka tidak spam retry berulang kali
+		// Tapi untuk strict development, kita bisa kembalikan 500
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"status": "error", "message": "internal server error"})
+	}
+
+	// Balas dengan HTTP 200 OK agar Midtrans tahu kita sudah menerimanya dengan baik
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{"status": "success", "message": "webhook processed successfully"})
 }

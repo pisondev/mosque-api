@@ -2,6 +2,8 @@ package finance
 
 import (
 	"context"
+	"crypto/sha512"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"os"
@@ -28,6 +30,7 @@ type Service interface {
 	ListPublicDonors(ctx context.Context, hostname string, campaignID int64, q ListQuery) ([]TransactionResponse, int64, error)
 
 	CreateDonation(ctx context.Context, hostname string, req DonatePayload) (*TransactionResponse, error)
+	HandleMidtransWebhook(ctx context.Context, payload MidtransNotificationPayload) error
 }
 
 type service struct {
@@ -196,4 +199,51 @@ func (s *service) CreateDonation(ctx context.Context, hostname string, req Donat
 	txRes.PaymentMethod = &snapResp.Token
 
 	return txRes, nil
+}
+
+// ==========================================
+// WEBHOOK SIGNATURE VALIDATION
+// ==========================================
+
+func (s *service) HandleMidtransWebhook(ctx context.Context, payload MidtransNotificationPayload) error {
+	// 1. Cari Tenant ID dari tabel transaksi
+	tenantID, err := s.repo.GetTenantIDByTransactionID(ctx, payload.OrderID)
+	if err != nil {
+		s.log.Warn("Webhook ditolak: Transaksi tidak ditemukan untuk OrderID ", payload.OrderID)
+		return errors.New("transaksi tidak ditemukan")
+	}
+
+	// 2. Tentukan Server Key yang dipakai (Pusat atau Mandiri)
+	serverKey := os.Getenv("MIDTRANS_SERVER_KEY")
+	pgConfig, err := s.repo.GetPGConfig(ctx, tenantID)
+	if err == nil && pgConfig != nil && !pgConfig.UseCentralPG && pgConfig.IsActive {
+		serverKey = pgConfig.ServerKey
+	}
+
+	if serverKey == "" {
+		s.log.Error("Webhook gagal: Server Key tidak ditemukan untuk Tenant ", tenantID)
+		return errors.New("server key tidak dikonfigurasi")
+	}
+
+	// 3. Validasi Keamanan (Signature Key SHA512)
+	// Rumus Midtrans: SHA512(order_id + status_code + gross_amount + server_key)
+	hashInput := payload.OrderID + payload.StatusCode + payload.GrossAmount + serverKey
+	hasher := sha512.New()
+	hasher.Write([]byte(hashInput))
+	expectedSignature := hex.EncodeToString(hasher.Sum(nil))
+
+	if payload.SignatureKey != expectedSignature {
+		s.log.Warnf("Webhook HACK ATTEMPT! Signature tidak cocok. OrderID: %s", payload.OrderID)
+		return errors.New("invalid signature key")
+	}
+
+	// 4. Jika aman, lanjutkan eksekusi DB Transaction (Row Locking)
+	err = s.repo.ProcessWebhookTransaction(ctx, payload.OrderID, payload.TransactionStatus, payload.PaymentType)
+	if err != nil {
+		s.log.Error("Gagal mengeksekusi DB Transaction Webhook: ", err)
+		return err
+	}
+
+	s.log.Infof("Webhook sukses diproses. OrderID: %s, Status: %s", payload.OrderID, payload.TransactionStatus)
+	return nil
 }
