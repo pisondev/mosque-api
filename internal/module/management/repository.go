@@ -32,6 +32,7 @@ type Repository interface {
 	ListStaticPages(ctx context.Context, tenantID string) ([]PostResponse, error)
 	UpsertStaticPageBySlug(ctx context.Context, tenantID, slug string, req StaticPagePayload) (*PostResponse, error)
 	UpdateTenantSetup(ctx context.Context, tenantID, name, subdomain string) error
+	GetRawBillingData(ctx context.Context, tenantID string) (*RawBillingData, error)
 }
 
 type repository struct {
@@ -527,4 +528,20 @@ func slugify(s string) string {
 	s = strings.ReplaceAll(s, " ", "-")
 	// Opsional: Jika ingin lebih ketat, kamu bisa tambahkan regex untuk menghapus karakter spesial di sini nanti
 	return s
+}
+
+func (r *repository) GetRawBillingData(ctx context.Context, tenantID string) (*RawBillingData, error) {
+	// Pake LEFT JOIN untuk jaga-jaga kalau data di tenant_usages belum ter-seed
+	query := `
+		SELECT t.subscription_plan, t.active_template_id, COALESCE(tu.storage_used_mb, 0)
+		FROM tenants t
+		LEFT JOIN tenant_usages tu ON t.id = tu.tenant_id
+		WHERE t.id = $1
+	`
+	var data RawBillingData
+	err := r.db.QueryRow(ctx, query, tenantID).Scan(&data.SubscriptionPlan, &data.ActiveTemplate, &data.StorageUsedMB)
+	if err != nil {
+		return nil, err
+	}
+	return &data, nil
 }

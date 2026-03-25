@@ -32,6 +32,7 @@ type Controller interface {
 	ListStaticPages(c *fiber.Ctx) error
 	UpsertStaticPage(c *fiber.Ctx) error
 	SetupTenant(c *fiber.Ctx) error
+	GetBillingStatus(c *fiber.Ctx) error
 }
 
 type controller struct {
@@ -41,6 +42,21 @@ type controller struct {
 
 func NewController(service Service, log *logrus.Logger) Controller {
 	return &controller{service: service, log: log}
+}
+
+// Helper untuk mengambil tenant_id dari middleware auth
+func getTenantID(c *fiber.Ctx) string {
+	val := c.Locals("tenant_id")
+	if val == nil {
+		return ""
+	}
+
+	// Safe type assertion
+	tenantID, ok := val.(string)
+	if !ok {
+		tenantID = fmt.Sprintf("%v", val)
+	}
+	return tenantID
 }
 
 // TenantMe godoc
@@ -618,4 +634,20 @@ func (ctrl *controller) SetupTenant(c *fiber.Ctx) error {
 	}
 
 	return response.Success(c, fiber.StatusOK, "tenant setup successful", nil, nil)
+}
+
+func (ctrl *controller) GetBillingStatus(c *fiber.Ctx) error {
+	tenantID := getTenantID(c)
+	if tenantID == "" {
+		return response.Error(c, fiber.StatusUnauthorized, "Sesi tidak valid atau tenant ID hilang")
+	}
+
+	// UBAH DI BARIS INI: ctrl.svc menjadi ctrl.service
+	res, err := ctrl.service.GetBillingStatus(c.Context(), tenantID)
+	if err != nil {
+		ctrl.log.Error(err)
+		return response.Error(c, fiber.StatusInternalServerError, "Gagal memuat status langganan")
+	}
+
+	return response.Success(c, fiber.StatusOK, "Status langganan berhasil dimuat", res, nil)
 }

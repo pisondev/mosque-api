@@ -119,3 +119,28 @@ type SetupTenantRequest struct {
 	Name      string `json:"name"`
 	Subdomain string `json:"subdomain"`
 }
+
+// ==========================================
+// BILLING & SUBSCRIPTION STATUS
+// ==========================================
+
+type StorageInfo struct {
+	LimitMB float64 `json:"limit_mb"`
+	UsedMB  float64 `json:"used_mb"`
+}
+
+type BillingStatusResponse struct {
+	SubscriptionPlan      string      `json:"subscription_plan"`
+	ActiveTemplate        string      `json:"active_template"`
+	Storage               StorageInfo `json:"storage"`
+	FeaturesUnlocked      []string    `json:"features_unlocked"`
+	AttributionEnabled    bool        `json:"attribution_enabled"`
+	PlatformFeePercentage float64     `json:"platform_fee_percentage"`
+}
+
+// Struct internal untuk menampung hasil query raw dari database
+type RawBillingData struct {
+	SubscriptionPlan string
+	ActiveTemplate   string
+	StorageUsedMB    float64
+}

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"strings"
 
+	"github.com/pisondev/mosque-api/internal/constant"
 	"github.com/sirupsen/logrus"
 )
 
@@ -29,6 +30,8 @@ type Service interface {
 	ListStaticPages(ctx context.Context, tenantID string) ([]PostResponse, error)
 	UpsertStaticPageBySlug(ctx context.Context, tenantID, slug string, req StaticPagePayload) (*PostResponse, error)
 	SetupTenant(ctx context.Context, tenantID, name, subdomain string) error
+
+	GetBillingStatus(ctx context.Context, tenantID string) (*BillingStatusResponse, error)
 }
 
 type service struct {
@@ -135,4 +138,34 @@ func (s *service) SetupTenant(ctx context.Context, tenantID, name, subdomain str
 	}
 
 	return s.repo.UpdateTenantSetup(ctx, tenantID, name, subdomain)
+}
+
+func (s *service) GetBillingStatus(ctx context.Context, tenantID string) (*BillingStatusResponse, error) {
+	// 1. Ambil data mentah dari DB
+	raw, err := s.repo.GetRawBillingData(ctx, tenantID)
+	if err != nil {
+		return nil, err
+	}
+
+	// 2. Cocokkan dengan Kamus Plan (Fallback ke Free jika plan tidak valid)
+	planDetail, exists := constant.SubscriptionPlans[raw.SubscriptionPlan]
+	if !exists {
+		planDetail = constant.SubscriptionPlans[constant.PlanFree]
+		raw.SubscriptionPlan = constant.PlanFree
+	}
+
+	// 3. Rakit Response sesuai Kontrak Frontend
+	res := &BillingStatusResponse{
+		SubscriptionPlan: raw.SubscriptionPlan,
+		ActiveTemplate:   raw.ActiveTemplate,
+		Storage: StorageInfo{
+			LimitMB: planDetail.StorageLimitMB,
+			UsedMB:  raw.StorageUsedMB,
+		},
+		FeaturesUnlocked:      planDetail.FeaturesUnlocked,
+		AttributionEnabled:    planDetail.AttributionEnabled,
+		PlatformFeePercentage: planDetail.PlatformFeePercentage,
+	}
+
+	return res, nil
 }
