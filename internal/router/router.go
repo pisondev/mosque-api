@@ -13,6 +13,7 @@ import (
 	"github.com/pisondev/mosque-api/internal/module/finance"
 	"github.com/pisondev/mosque-api/internal/module/management"
 	"github.com/pisondev/mosque-api/internal/module/worship"
+	"github.com/pisondev/mosque-api/internal/storage"
 	"github.com/sirupsen/logrus"
 )
 
@@ -58,6 +59,11 @@ func SetupRoutes(app *fiber.App, db *pgxpool.Pool, log *logrus.Logger) {
 	financeService := finance.NewService(financeRepo, log)
 	financeController := finance.NewController(financeService, log)
 
+	// Storage / Upload
+	store := storage.New()
+	tenantGroup.Post("/upload", management.UploadHandler(store, db))
+	tenantGroup.Get("/storage-quota", management.StorageQuotaHandler(store, db))
+
 	tenantGroup.Get("/me", managementController.TenantMe)
 	tenantGroup.Patch("/setup", managementController.SetupTenant)
 	tenantGroup.Get("/domains", managementController.ListDomains)
@@ -84,6 +90,15 @@ func SetupRoutes(app *fiber.App, db *pgxpool.Pool, log *logrus.Logger) {
 	tenantGroup.Put("/static-pages/:slug", managementController.UpsertStaticPage)
 	// Endpoint SaaS State untuk Frontend
 	tenantGroup.Get("/billing-status", managementController.GetBillingStatus)
+	tenantGroup.Get("/subscription/plans", financeController.ListSubscriptionPlans)
+	tenantGroup.Post("/subscription/checkout", financeController.CreateSubscriptionCheckout)
+	tenantGroup.Post("/subscription/quote", financeController.GetSubscriptionQuote)
+	tenantGroup.Post("/subscription/checkout-v2", financeController.CreateSubscriptionCheckoutFromQuote)
+	tenantGroup.Post("/subscription/activate-free", financeController.ActivateFreePlan)
+	tenantGroup.Get("/subscription/transactions", financeController.ListSubscriptionTransactions)
+	tenantGroup.Get("/subscription/transactions/active", financeController.GetActiveSubscriptionTransaction)
+	tenantGroup.Post("/subscription/transactions/:id/cancel", financeController.CancelSubscriptionTransaction)
+	tenantGroup.Get("/subscription/transactions/:id", financeController.GetSubscriptionTransaction)
 
 	tenantGroup.Get("/prayer-time-settings", worshipController.GetPrayerTimeSettings)
 	tenantGroup.Put("/prayer-time-settings", worshipController.UpsertPrayerTimeSettings)

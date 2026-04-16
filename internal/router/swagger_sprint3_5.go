@@ -516,3 +516,48 @@ func swaggerPublicSocialLinksList() {}
 // @Success 200 {object} map[string]interface{}
 // @Router /public/{hostname}/external-links [get]
 func swaggerPublicExternalLinksList() {}
+
+// @Summary List subscription plans
+// @Tags Billing
+// @Security BearerAuth
+// @Success 200 {object} map[string]interface{}
+// @Router /tenant/subscription/plans [get]
+func swaggerTenantSubscriptionPlansList() {}
+
+// @Summary Create subscription checkout
+// @Tags Billing
+// @Security BearerAuth
+// @Param payload body object true "payload"
+// @Success 201 {object} map[string]interface{}
+// @Router /tenant/subscription/checkout [post]
+func swaggerTenantSubscriptionCheckoutCreate() {}
+
+// @Summary Activate free plan onboarding
+// @Tags Billing
+// @Security BearerAuth
+// @Success 200 {object} map[string]interface{}
+// @Router /tenant/subscription/activate-free [post]
+func swaggerTenantSubscriptionActivateFree() {}
+
+// @Summary Get subscription transaction status
+// @Tags Billing
+// @Security BearerAuth
+// @Param id path string true "id"
+// @Success 200 {object} map[string]interface{}
+// @Router /tenant/subscription/transactions/{id} [get]
+func swaggerTenantSubscriptionTransactionGet() {}
+
+// @Summary Get active pending subscription transaction
+// @Tags Billing
+// @Security BearerAuth
+// @Success 200 {object} map[string]interface{}
+// @Router /tenant/subscription/transactions/active [get]
+func swaggerTenantSubscriptionTransactionActiveGet() {}
+
+// @Summary Cancel pending subscription transaction
+// @Tags Billing
+// @Security BearerAuth
+// @Param id path string true "id"
+// @Success 200 {object} map[string]interface{}
+// @Router /tenant/subscription/transactions/{id}/cancel [post]
+func swaggerTenantSubscriptionTransactionCancel() {}

@@ -8,4 +8,5 @@ var (
 	ErrValidation      = errors.New("validation failed")
 	ErrTagInUse        = errors.New("tag is still in use")
 	ErrUnauthorizedCtx = errors.New("unauthorized tenant context")
+	ErrPaymentRequired = errors.New("payment required before setup")
 )

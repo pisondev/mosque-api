@@ -2,6 +2,8 @@ package engagement
 
 import (
 	"context"
+	"regexp"
+	"strings"
 
 	"github.com/sirupsen/logrus"
 )
@@ -36,6 +38,9 @@ type service struct {
 	log  *logrus.Logger
 }
 
+var labelRegex = regexp.MustCompile(`^[A-Za-z -]+$`)
+var digitsOnlyRegex = regexp.MustCompile(`^[0-9]+$`)
+
 func NewService(repo Repository, log *logrus.Logger) Service {
 	return &service{repo: repo, log: log}
 }
@@ -44,12 +49,18 @@ func (s *service) ListStaticPaymentMethods(ctx context.Context, tenantID string,
 	return s.repo.ListStaticPaymentMethods(ctx, tenantID, q)
 }
 func (s *service) CreateStaticPaymentMethod(ctx context.Context, tenantID string, req StaticPaymentMethodPayload) (*StaticPaymentMethodResponse, error) {
+	if err := validateStaticPaymentMethod(&req); err != nil {
+		return nil, err
+	}
 	return s.repo.CreateStaticPaymentMethod(ctx, tenantID, req)
 }
 func (s *service) GetStaticPaymentMethod(ctx context.Context, tenantID string, id int64) (*StaticPaymentMethodResponse, error) {
 	return s.repo.GetStaticPaymentMethod(ctx, tenantID, id)
 }
 func (s *service) UpdateStaticPaymentMethod(ctx context.Context, tenantID string, id int64, req StaticPaymentMethodPayload) error {
+	if err := validateStaticPaymentMethod(&req); err != nil {
+		return err
+	}
 	return s.repo.UpdateStaticPaymentMethod(ctx, tenantID, id, req)
 }
 func (s *service) DeleteStaticPaymentMethod(ctx context.Context, tenantID string, id int64) error {
@@ -105,4 +116,45 @@ func (s *service) UpsertWebsiteFeature(ctx context.Context, tenantID string, fea
 }
 func (s *service) BulkUpsertWebsiteFeatures(ctx context.Context, tenantID string, items []WebsiteFeatureBulkItem) error {
 	return s.repo.BulkUpsertWebsiteFeatures(ctx, tenantID, items)
+}
+
+func validateStaticPaymentMethod(req *StaticPaymentMethodPayload) error {
+	req.Label = strings.TrimSpace(req.Label)
+	if req.Label == "" || len(req.Label) > 25 || !labelRegex.MatchString(req.Label) {
+		return ErrValidation
+	}
+	if req.Description != nil && len(strings.TrimSpace(*req.Description)) > 250 {
+		return ErrValidation
+	}
+	if req.ChannelType == "bank_account" {
+		if req.BankName == nil || req.AccountNumber == nil || req.AccountHolderName == nil {
+			return ErrValidation
+		}
+		bankName := strings.TrimSpace(*req.BankName)
+		holder := strings.TrimSpace(*req.AccountHolderName)
+		accountNo := strings.TrimSpace(*req.AccountNumber)
+		if bankName == "" || len(bankName) > 25 || !labelRegex.MatchString(bankName) {
+			return ErrValidation
+		}
+		if holder == "" || len(holder) > 25 || !labelRegex.MatchString(holder) {
+			return ErrValidation
+		}
+		if accountNo == "" || !digitsOnlyRegex.MatchString(accountNo) {
+			return ErrValidation
+		}
+		*req.BankName = bankName
+		*req.AccountHolderName = holder
+		*req.AccountNumber = accountNo
+	}
+	if req.ChannelType == "qris" {
+		if req.QrisImageURL == nil || strings.TrimSpace(*req.QrisImageURL) == "" {
+			return ErrValidation
+		}
+		qris := strings.TrimSpace(*req.QrisImageURL)
+		if len(qris) > 1000000 {
+			return ErrValidation
+		}
+		*req.QrisImageURL = qris
+	}
+	return nil
 }

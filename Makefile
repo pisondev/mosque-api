@@ -1,4 +1,4 @@
-# URL koneksi ke database. Perhatikan port 5435 sesuai docker-compose milikmu.
+# URL koneksi ke database. Perhatikan port 5435 sesuai postgres lokal.
 DB_URL=postgres://root:secretpassword@localhost:5435/mosque_saas?sslmode=disable
 
 .PHONY: migrate-up migrate-down migrate-force new-migration run
@@ -23,6 +23,6 @@ migrate-force:
 new-migration:
 	migrate create -ext sql -dir db/migrations -seq $(name)
 
-# Menjalankan server Go lokal
+# Menjalankan server Go lokal beserta auto-start database
 run:
-	go run main.go
+	run_with_db.bat

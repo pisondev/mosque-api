@@ -2,7 +2,7 @@ package management
 
 import (
 	"context"
-	"errors"
+	"regexp"
 	"strings"
 
 	"github.com/pisondev/mosque-api/internal/constant"
@@ -39,6 +39,10 @@ type service struct {
 	log  *logrus.Logger
 }
 
+var setupSubdomainRegex = regexp.MustCompile(`^[a-z-]{1,10}$`)
+var alphaSpaceHyphenRegex = regexp.MustCompile(`^[A-Za-z -]+$`)
+var digitsOnlyRegex = regexp.MustCompile(`^[0-9]+$`)
+
 func NewService(repo Repository, log *logrus.Logger) Service {
 	return &service{repo: repo, log: log}
 }
@@ -74,6 +78,30 @@ func (s *service) GetProfile(ctx context.Context, tenantID string) (*ProfileResp
 }
 
 func (s *service) UpsertProfile(ctx context.Context, tenantID string, req ProfileRequest) (*ProfileResponse, error) {
+	req.OfficialName = strings.TrimSpace(req.OfficialName)
+	req.ShortName = strings.TrimSpace(req.ShortName)
+	req.ShortDesc = strings.TrimSpace(req.ShortDesc)
+	req.Province = strings.TrimSpace(req.Province)
+	req.City = strings.TrimSpace(req.City)
+	req.AddressFull = strings.TrimSpace(req.AddressFull)
+	req.PhoneWA = strings.TrimSpace(req.PhoneWA)
+	req.HeaderImageURL = strings.TrimSpace(req.HeaderImageURL)
+
+	if req.OfficialName == "" || len(req.OfficialName) > 25 || !alphaSpaceHyphenRegex.MatchString(req.OfficialName) {
+		return nil, ErrValidation
+	}
+	if req.ShortName != "" {
+		if len(req.ShortName) > 25 || !alphaSpaceHyphenRegex.MatchString(req.ShortName) {
+			return nil, ErrValidation
+		}
+	}
+	if req.PhoneWA != "" && !digitsOnlyRegex.MatchString(req.PhoneWA) {
+		return nil, ErrValidation
+	}
+	if len(req.AddressFull) > 250 || len(req.ShortDesc) > 250 {
+		return nil, ErrValidation
+	}
+
 	return s.repo.UpsertProfile(ctx, tenantID, req)
 }
 
@@ -126,15 +154,13 @@ func (s *service) UpsertStaticPageBySlug(ctx context.Context, tenantID, slug str
 }
 
 func (s *service) SetupTenant(ctx context.Context, tenantID, name, subdomain string) error {
-	// Sanitasi input
 	name = strings.TrimSpace(name)
 	subdomain = strings.ToLower(strings.TrimSpace(subdomain))
-
-	// Ganti spasi dengan strip untuk subdomain agar URL-friendly
-	subdomain = strings.ReplaceAll(subdomain, " ", "-")
-
 	if name == "" || subdomain == "" {
-		return errors.New("name and subdomain are required")
+		return ErrValidation
+	}
+	if !setupSubdomainRegex.MatchString(subdomain) {
+		return ErrValidation
 	}
 
 	return s.repo.UpdateTenantSetup(ctx, tenantID, name, subdomain)

@@ -2,6 +2,7 @@ package management
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -44,17 +45,22 @@ func NewRepository(db *pgxpool.Pool) Repository {
 }
 
 func (r *repository) GetTenantContext(ctx context.Context, tenantID, email string) (map[string]interface{}, error) {
-	var name, subdomain, status string
-	err := r.db.QueryRow(ctx, `SELECT name, subdomain, status FROM tenants WHERE id=$1`, tenantID).Scan(&name, &subdomain, &status)
+	var name, subdomain, status, subscriptionPlan, onboardingPaymentStatus string
+	var onboardingCompleted bool
+	err := r.db.QueryRow(ctx, `SELECT name, subdomain, status, subscription_plan, onboarding_completed, onboarding_payment_status FROM tenants WHERE id=$1`, tenantID).
+		Scan(&name, &subdomain, &status, &subscriptionPlan, &onboardingCompleted, &onboardingPaymentStatus)
 	if err != nil {
 		return nil, err
 	}
 	return map[string]interface{}{
-		"tenant_id": tenantID,
-		"email":     email,
-		"name":      name,
-		"subdomain": subdomain,
-		"status":    status,
+		"tenant_id":                 tenantID,
+		"email":                     email,
+		"name":                      name,
+		"subdomain":                 subdomain,
+		"status":                    status,
+		"subscription_plan":         subscriptionPlan,
+		"onboarding_completed":      onboardingCompleted,
+		"onboarding_payment_status": onboardingPaymentStatus,
 	}, nil
 }
 
@@ -143,9 +149,9 @@ func (r *repository) DeleteDomain(ctx context.Context, tenantID string, id int64
 
 func (r *repository) GetProfile(ctx context.Context, tenantID string) (*ProfileResponse, error) {
 	var item ProfileResponse
-	err := r.db.QueryRow(ctx, `SELECT official_name, kind::text, COALESCE(short_name,''), COALESCE(city,''), COALESCE(address_full,''), COALESCE(phone_whatsapp,''), COALESCE(email,'')
+	err := r.db.QueryRow(ctx, `SELECT official_name, kind::text, COALESCE(short_name,''), COALESCE(short_description,''), COALESCE(province,''), COALESCE(city,''), COALESCE(address_full,''), COALESCE(phone_whatsapp,''), COALESCE(email,''), COALESCE(header_image_url,'')
 		FROM masjid_profiles WHERE tenant_id=$1`, tenantID).
-		Scan(&item.OfficialName, &item.Kind, &item.ShortName, &item.City, &item.AddressFull, &item.PhoneWA, &item.Email)
+		Scan(&item.OfficialName, &item.Kind, &item.ShortName, &item.ShortDesc, &item.Province, &item.City, &item.AddressFull, &item.PhoneWA, &item.Email, &item.HeaderImageURL)
 	if err != nil {
 		if err == pgx.ErrNoRows {
 			return nil, ErrNotFound
@@ -157,20 +163,23 @@ func (r *repository) GetProfile(ctx context.Context, tenantID string) (*ProfileR
 
 func (r *repository) UpsertProfile(ctx context.Context, tenantID string, req ProfileRequest) (*ProfileResponse, error) {
 	var item ProfileResponse
-	err := r.db.QueryRow(ctx, `INSERT INTO masjid_profiles (tenant_id, official_name, kind, short_name, city, address_full, phone_whatsapp, email)
-		VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
+	err := r.db.QueryRow(ctx, `INSERT INTO masjid_profiles (tenant_id, official_name, kind, short_name, short_description, province, city, address_full, phone_whatsapp, email, header_image_url)
+		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
 		ON CONFLICT (tenant_id) DO UPDATE SET
 		official_name=EXCLUDED.official_name,
 		kind=EXCLUDED.kind,
 		short_name=EXCLUDED.short_name,
+		short_description=EXCLUDED.short_description,
+		province=EXCLUDED.province,
 		city=EXCLUDED.city,
 		address_full=EXCLUDED.address_full,
 		phone_whatsapp=EXCLUDED.phone_whatsapp,
 		email=EXCLUDED.email,
+		header_image_url=EXCLUDED.header_image_url,
 		updated_at=now()
-		RETURNING official_name, kind::text, COALESCE(short_name,''), COALESCE(city,''), COALESCE(address_full,''), COALESCE(phone_whatsapp,''), COALESCE(email,'')`,
-		tenantID, req.OfficialName, req.Kind, nullable(req.ShortName), nullable(req.City), nullable(req.AddressFull), nullable(req.PhoneWA), nullable(req.Email)).
-		Scan(&item.OfficialName, &item.Kind, &item.ShortName, &item.City, &item.AddressFull, &item.PhoneWA, &item.Email)
+		RETURNING official_name, kind::text, COALESCE(short_name,''), COALESCE(short_description,''), COALESCE(province,''), COALESCE(city,''), COALESCE(address_full,''), COALESCE(phone_whatsapp,''), COALESCE(email,''), COALESCE(header_image_url,'')`,
+		tenantID, req.OfficialName, req.Kind, nullable(req.ShortName), nullable(req.ShortDesc), nullable(req.Province), nullable(req.City), nullable(req.AddressFull), nullable(req.PhoneWA), nullable(req.Email), nullable(req.HeaderImageURL)).
+		Scan(&item.OfficialName, &item.Kind, &item.ShortName, &item.ShortDesc, &item.Province, &item.City, &item.AddressFull, &item.PhoneWA, &item.Email, &item.HeaderImageURL)
 	if err != nil {
 		return nil, err
 	}
@@ -495,8 +504,28 @@ func (r *repository) UpsertStaticPageBySlug(ctx context.Context, tenantID, slug 
 }
 
 func (r *repository) UpdateTenantSetup(ctx context.Context, tenantID, name, subdomain string) error {
-	// Kita ubah namanya, subdomainnya, dan ubah statusnya dari 'pending' menjadi 'active'
-	tag, err := r.db.Exec(ctx, `UPDATE tenants SET name=$1, subdomain=$2, status='active', updated_at=now() WHERE id=$3`, name, subdomain, tenantID)
+	var onboardingPaymentStatus string
+	err := r.db.QueryRow(ctx, `SELECT onboarding_payment_status FROM tenants WHERE id = $1`, tenantID).Scan(&onboardingPaymentStatus)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return ErrNotFound
+		}
+		return err
+	}
+	if onboardingPaymentStatus != "paid" && onboardingPaymentStatus != "free" {
+		return ErrPaymentRequired
+	}
+
+	tag, err := r.db.Exec(ctx, `
+		UPDATE tenants
+		SET name = $1,
+			subdomain = $2,
+			status = 'active',
+			onboarding_completed = true,
+			updated_at = NOW()
+		WHERE id = $3
+		  AND onboarding_payment_status IN ('paid', 'free')
+	`, name, subdomain, tenantID)
 	if err != nil {
 		// Tangkap error jika subdomain sudah dipakai orang lain
 		if pgErr, ok := err.(*pgconn.PgError); ok && pgErr.Code == "23505" {

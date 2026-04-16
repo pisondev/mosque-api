@@ -1,0 +1,2 @@
+ALTER TABLE management_members
+ADD COLUMN IF NOT EXISTS bio TEXT NULL;

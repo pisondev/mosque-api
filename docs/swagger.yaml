@@ -1576,6 +1576,103 @@ paths:
       summary: Upsert static page by slug
       tags:
       - StaticPages
+  /tenant/subscription/activate-free:
+    post:
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Activate free plan onboarding
+      tags:
+      - Billing
+  /tenant/subscription/checkout:
+    post:
+      parameters:
+      - description: payload
+        in: body
+        name: payload
+        required: true
+        schema:
+          type: object
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Create subscription checkout
+      tags:
+      - Billing
+  /tenant/subscription/plans:
+    get:
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: List subscription plans
+      tags:
+      - Billing
+  /tenant/subscription/transactions/{id}:
+    get:
+      parameters:
+      - description: id
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get subscription transaction status
+      tags:
+      - Billing
+  /tenant/subscription/transactions/{id}/cancel:
+    post:
+      parameters:
+      - description: id
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Cancel pending subscription transaction
+      tags:
+      - Billing
+  /tenant/subscription/transactions/active:
+    get:
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get active pending subscription transaction
+      tags:
+      - Billing
   /tenant/tags:
     get:
       parameters:

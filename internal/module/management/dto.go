@@ -27,23 +27,29 @@ type DomainResponse struct {
 }
 
 type ProfileRequest struct {
-	OfficialName string `json:"official_name"`
-	Kind         string `json:"kind"`
-	ShortName    string `json:"short_name"`
-	City         string `json:"city"`
-	AddressFull  string `json:"address_full"`
-	PhoneWA      string `json:"phone_whatsapp"`
-	Email        string `json:"email"`
+	OfficialName   string `json:"official_name"`
+	Kind           string `json:"kind"`
+	ShortName      string `json:"short_name"`
+	ShortDesc      string `json:"short_description"`
+	Province       string `json:"province"`
+	City           string `json:"city"`
+	AddressFull    string `json:"address_full"`
+	PhoneWA        string `json:"phone_whatsapp"`
+	Email          string `json:"email"`
+	HeaderImageURL string `json:"header_image_url"`
 }
 
 type ProfileResponse struct {
-	OfficialName string `json:"official_name"`
-	Kind         string `json:"kind"`
-	ShortName    string `json:"short_name"`
-	City         string `json:"city"`
-	AddressFull  string `json:"address_full"`
-	PhoneWA      string `json:"phone_whatsapp"`
-	Email        string `json:"email"`
+	OfficialName   string `json:"official_name"`
+	Kind           string `json:"kind"`
+	ShortName      string `json:"short_name"`
+	ShortDesc      string `json:"short_description"`
+	Province       string `json:"province"`
+	City           string `json:"city"`
+	AddressFull    string `json:"address_full"`
+	PhoneWA        string `json:"phone_whatsapp"`
+	Email          string `json:"email"`
+	HeaderImageURL string `json:"header_image_url"`
 }
 
 type CreateTagRequest struct {

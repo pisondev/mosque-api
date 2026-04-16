@@ -2,7 +2,9 @@ package community
 
 import (
 	"context"
+	"regexp"
 	"strings"
+	"time"
 
 	"github.com/sirupsen/logrus"
 )
@@ -40,6 +42,9 @@ type service struct {
 	log  *logrus.Logger
 }
 
+var memberNameRoleRegex = regexp.MustCompile(`^[A-Za-z -]+$`)
+var memberDigitsOnlyRegex = regexp.MustCompile(`^[0-9]+$`)
+
 func NewService(repo Repository, log *logrus.Logger) Service {
 	return &service{repo: repo, log: log}
 }
@@ -51,17 +56,23 @@ func (s *service) ListEvents(ctx context.Context, tenantID string, q EventListQu
 func (s *service) CreateEvent(ctx context.Context, tenantID string, req EventPayload) (*EventResponse, error) {
 	req.Title = strings.TrimSpace(req.Title)
 	req.Category = normalizeEventCategory(req.Category)
-	req.Status = normalizeEventStatus(req.Status)
 	req.TimeMode = strings.ToLower(strings.TrimSpace(req.TimeMode))
-	if req.Title == "" || req.Category == "" || req.StartDate == "" || req.TimeMode == "" || req.Status == "" {
+	if req.Title == "" || req.Category == "" || req.StartDate == "" || req.TimeMode == "" || req.EndDate == nil || strings.TrimSpace(*req.EndDate) == "" {
 		return nil, ErrValidation
 	}
-	if req.TimeMode == "exact_time" && (req.StartTime == nil || strings.TrimSpace(*req.StartTime) == "") {
+	if req.TimeMode == "exact_time" && (req.StartTime == nil || strings.TrimSpace(*req.StartTime) == "" || req.EndTime == nil || strings.TrimSpace(*req.EndTime) == "") {
 		return nil, ErrValidation
 	}
-	if req.TimeMode == "after_prayer" && (req.AfterPrayer == nil || strings.TrimSpace(*req.AfterPrayer) == "") {
+	if req.TimeMode == "after_prayer" && (req.AfterPrayer == nil || strings.TrimSpace(*req.AfterPrayer) == "" || req.EndTime == nil || strings.TrimSpace(*req.EndTime) == "") {
 		return nil, ErrValidation
 	}
+	if !isValidEventDateRange(req.StartDate, *req.EndDate) {
+		return nil, ErrValidation
+	}
+	if !isValidOptionalPerson(req.SpeakerName) || !isValidOptionalPerson(req.PersonInCharge) || !isValidOptionalPhone(req.ContactPhone) || !isValidOptionalLongText(req.Description) || !isValidOptionalLongText(req.NoteInternal) || !isValidOptionalLongText(req.NotePublic) {
+		return nil, ErrValidation
+	}
+	req.Status = deriveEventStatus(req)
 	if req.RepeatWeekdays == nil {
 		req.RepeatWeekdays = []int16{}
 	}
@@ -75,17 +86,23 @@ func (s *service) GetEvent(ctx context.Context, tenantID string, id int64) (*Eve
 func (s *service) UpdateEvent(ctx context.Context, tenantID string, id int64, req EventPayload) error {
 	req.Title = strings.TrimSpace(req.Title)
 	req.Category = normalizeEventCategory(req.Category)
-	req.Status = normalizeEventStatus(req.Status)
 	req.TimeMode = strings.ToLower(strings.TrimSpace(req.TimeMode))
-	if req.Title == "" || req.Category == "" || req.StartDate == "" || req.TimeMode == "" || req.Status == "" {
+	if req.Title == "" || req.Category == "" || req.StartDate == "" || req.TimeMode == "" || req.EndDate == nil || strings.TrimSpace(*req.EndDate) == "" {
 		return ErrValidation
 	}
-	if req.TimeMode == "exact_time" && (req.StartTime == nil || strings.TrimSpace(*req.StartTime) == "") {
+	if req.TimeMode == "exact_time" && (req.StartTime == nil || strings.TrimSpace(*req.StartTime) == "" || req.EndTime == nil || strings.TrimSpace(*req.EndTime) == "") {
 		return ErrValidation
 	}
-	if req.TimeMode == "after_prayer" && (req.AfterPrayer == nil || strings.TrimSpace(*req.AfterPrayer) == "") {
+	if req.TimeMode == "after_prayer" && (req.AfterPrayer == nil || strings.TrimSpace(*req.AfterPrayer) == "" || req.EndTime == nil || strings.TrimSpace(*req.EndTime) == "") {
 		return ErrValidation
 	}
+	if !isValidEventDateRange(req.StartDate, *req.EndDate) {
+		return ErrValidation
+	}
+	if !isValidOptionalPerson(req.SpeakerName) || !isValidOptionalPerson(req.PersonInCharge) || !isValidOptionalPhone(req.ContactPhone) || !isValidOptionalLongText(req.Description) || !isValidOptionalLongText(req.NoteInternal) || !isValidOptionalLongText(req.NotePublic) {
+		return ErrValidation
+	}
+	req.Status = deriveEventStatus(req)
 	if req.RepeatWeekdays == nil {
 		req.RepeatWeekdays = []int16{}
 	}
@@ -161,6 +178,9 @@ func (s *service) ListManagementMembers(ctx context.Context, tenantID string, q 
 }
 
 func (s *service) CreateManagementMember(ctx context.Context, tenantID string, req ManagementMemberPayload) (*ManagementMemberResponse, error) {
+	if err := validateManagementMemberPayload(&req); err != nil {
+		return nil, err
+	}
 	return s.repo.CreateManagementMember(ctx, tenantID, req)
 }
 
@@ -169,6 +189,9 @@ func (s *service) GetManagementMember(ctx context.Context, tenantID string, id i
 }
 
 func (s *service) UpdateManagementMember(ctx context.Context, tenantID string, id int64, req ManagementMemberPayload) error {
+	if err := validateManagementMemberPayload(&req); err != nil {
+		return err
+	}
 	return s.repo.UpdateManagementMember(ctx, tenantID, id, req)
 }
 
@@ -206,4 +229,114 @@ func normalizeEventStatus(v string) string {
 		return "finished"
 	}
 	return s
+}
+
+func isValidEventDateRange(startDate, endDate string) bool {
+	start, err := time.Parse("2006-01-02", strings.TrimSpace(startDate))
+	if err != nil {
+		return false
+	}
+	end, err := time.Parse("2006-01-02", strings.TrimSpace(endDate))
+	if err != nil {
+		return false
+	}
+	return !end.Before(start)
+}
+
+func isValidOptionalPerson(v *string) bool {
+	if v == nil {
+		return true
+	}
+	s := strings.TrimSpace(*v)
+	if s == "" {
+		return true
+	}
+	return len(s) <= 25 && memberNameRoleRegex.MatchString(s)
+}
+
+func isValidOptionalPhone(v *string) bool {
+	if v == nil {
+		return true
+	}
+	s := strings.TrimSpace(*v)
+	if s == "" {
+		return true
+	}
+	return memberDigitsOnlyRegex.MatchString(s)
+}
+
+func isValidOptionalLongText(v *string) bool {
+	if v == nil {
+		return true
+	}
+	return len(strings.TrimSpace(*v)) <= 250
+}
+
+func deriveEventStatus(req EventPayload) string {
+	now := time.Now()
+	start, err := time.Parse("2006-01-02", req.StartDate)
+	if err != nil {
+		return "upcoming"
+	}
+	end, err := time.Parse("2006-01-02", *req.EndDate)
+	if err != nil {
+		return "upcoming"
+	}
+
+	if req.StartTime != nil && strings.TrimSpace(*req.StartTime) != "" {
+		if t, err := time.Parse("15:04:05", strings.TrimSpace(*req.StartTime)); err == nil {
+			start = time.Date(start.Year(), start.Month(), start.Day(), t.Hour(), t.Minute(), t.Second(), 0, now.Location())
+		}
+	}
+	if req.EndTime != nil && strings.TrimSpace(*req.EndTime) != "" {
+		if t, err := time.Parse("15:04:05", strings.TrimSpace(*req.EndTime)); err == nil {
+			end = time.Date(end.Year(), end.Month(), end.Day(), t.Hour(), t.Minute(), t.Second(), 0, now.Location())
+		}
+	}
+
+	if now.Before(start) {
+		return "upcoming"
+	}
+	if now.After(end) {
+		return "finished"
+	}
+	return "ongoing"
+}
+
+func validateManagementMemberPayload(req *ManagementMemberPayload) error {
+	req.FullName = strings.TrimSpace(req.FullName)
+	req.RoleTitle = strings.TrimSpace(req.RoleTitle)
+
+	if req.FullName == "" || len(req.FullName) > 25 || !memberNameRoleRegex.MatchString(req.FullName) {
+		return ErrValidation
+	}
+	if req.RoleTitle == "" || len(req.RoleTitle) > 25 || !memberNameRoleRegex.MatchString(req.RoleTitle) {
+		return ErrValidation
+	}
+
+	if req.PhoneWhatsapp != nil {
+		v := strings.TrimSpace(*req.PhoneWhatsapp)
+		if v == "" {
+			req.PhoneWhatsapp = nil
+		} else {
+			if !memberDigitsOnlyRegex.MatchString(v) {
+				return ErrValidation
+			}
+			req.PhoneWhatsapp = &v
+		}
+	}
+
+	if req.ProfileImageURL != nil {
+		v := strings.TrimSpace(*req.ProfileImageURL)
+		if v == "" {
+			req.ProfileImageURL = nil
+		} else {
+			if len(v) > 500 {
+				return ErrValidation
+			}
+			req.ProfileImageURL = &v
+		}
+	}
+
+	return nil
 }
