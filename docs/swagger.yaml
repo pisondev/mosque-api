@@ -1,3 +1,4 @@
+basePath: /api/v1
 definitions:
   management.CreateDomainRequest:
     properties:
@@ -50,11 +51,17 @@ definitions:
         type: string
       email:
         type: string
+      header_image_url:
+        type: string
       kind:
         type: string
       official_name:
         type: string
       phone_whatsapp:
+        type: string
+      province:
+        type: string
+      short_description:
         type: string
       short_name:
         type: string
@@ -98,12 +105,217 @@ info:
   title: Mosque SaaS API
   version: "1.0"
 paths:
-  /public/{hostname}/donation-channels:
+  /auth/forgot-password:
+    post:
+      parameters:
+      - description: payload
+        in: body
+        name: payload
+        required: true
+        schema:
+          type: object
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Request forgot password email
+      tags:
+      - Auth
+  /auth/google:
+    post:
+      parameters:
+      - description: payload
+        in: body
+        name: payload
+        required: true
+        schema:
+          type: object
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Login with Google token
+      tags:
+      - Auth
+  /auth/login:
+    post:
+      parameters:
+      - description: payload
+        in: body
+        name: payload
+        required: true
+        schema:
+          type: object
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Login with email and password
+      tags:
+      - Auth
+  /auth/register:
+    post:
+      parameters:
+      - description: payload
+        in: body
+        name: payload
+        required: true
+        schema:
+          type: object
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Register tenant admin
+      tags:
+      - Auth
+  /auth/reset-password:
+    post:
+      parameters:
+      - description: payload
+        in: body
+        name: payload
+        required: true
+        schema:
+          type: object
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Reset password
+      tags:
+      - Auth
+  /docs:
+    get:
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      summary: API docs links
+      tags:
+      - System
+  /health:
+    get:
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "503":
+          description: Service Unavailable
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Health check API
+      tags:
+      - System
+  /public/{hostname}/campaigns:
     get:
       parameters:
       - description: hostname
         in: path
         name: hostname
+        required: true
+        type: string
+      - description: page
+        in: query
+        name: page
+        type: integer
+      - description: limit
+        in: query
+        name: limit
+        type: integer
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Public campaigns
+      tags:
+      - Public
+  /public/{hostname}/campaigns/{id}/donate:
+    post:
+      parameters:
+      - description: hostname
+        in: path
+        name: hostname
+        required: true
+        type: string
+      - description: id
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: payload
+        in: body
+        name: payload
+        required: true
+        schema:
+          type: object
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Create public donation checkout
+      tags:
+      - Public
+  /public/{hostname}/campaigns/{id}/donors:
+    get:
+      parameters:
+      - description: hostname
+        in: path
+        name: hostname
+        required: true
+        type: string
+      - description: id
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: page
+        in: query
+        name: page
+        type: integer
+      - description: limit
+        in: query
+        name: limit
+        type: integer
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Public campaign donors
+      tags:
+      - Public
+  /public/{hostname}/campaigns/{slug}:
+    get:
+      parameters:
+      - description: hostname
+        in: path
+        name: hostname
+        required: true
+        type: string
+      - description: slug
+        in: path
+        name: slug
         required: true
         type: string
       responses:
@@ -112,7 +324,7 @@ paths:
           schema:
             additionalProperties: true
             type: object
-      summary: Public donation channels
+      summary: Public campaign detail
       tags:
       - Public
   /public/{hostname}/events:
@@ -217,6 +429,134 @@ paths:
       summary: Public social links
       tags:
       - Public
+  /public/{hostname}/static-payment-methods:
+    get:
+      parameters:
+      - description: hostname
+        in: path
+        name: hostname
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Public donation channels
+      tags:
+      - Public
+  /tenant/campaigns:
+    get:
+      parameters:
+      - description: page
+        in: query
+        name: page
+        type: integer
+      - description: limit
+        in: query
+        name: limit
+        type: integer
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: List tenant campaigns
+      tags:
+      - Finance
+    post:
+      parameters:
+      - description: payload
+        in: body
+        name: payload
+        required: true
+        schema:
+          type: object
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Create tenant campaign
+      tags:
+      - Finance
+  /tenant/campaigns/{id}:
+    get:
+      parameters:
+      - description: id
+        in: path
+        name: id
+        required: true
+        type: integer
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get tenant campaign detail
+      tags:
+      - Finance
+    put:
+      parameters:
+      - description: id
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: payload
+        in: body
+        name: payload
+        required: true
+        schema:
+          type: object
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Update tenant campaign
+      tags:
+      - Finance
+  /tenant/campaigns/{id}/transactions:
+    get:
+      parameters:
+      - description: id
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: page
+        in: query
+        name: page
+        type: integer
+      - description: limit
+        in: query
+        name: limit
+        type: integer
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: List tenant campaign transactions
+      tags:
+      - Finance
   /tenant/domains:
     get:
       parameters:
@@ -306,99 +646,6 @@ paths:
       summary: Update tenant domain
       tags:
       - Domains
-  /tenant/donation-channels:
-    get:
-      responses:
-        "200":
-          description: OK
-          schema:
-            additionalProperties: true
-            type: object
-      security:
-      - BearerAuth: []
-      summary: List donation channels
-      tags:
-      - Engagement
-    post:
-      parameters:
-      - description: payload
-        in: body
-        name: payload
-        required: true
-        schema:
-          type: object
-      responses:
-        "201":
-          description: Created
-          schema:
-            additionalProperties: true
-            type: object
-      security:
-      - BearerAuth: []
-      summary: Create donation channel
-      tags:
-      - Engagement
-  /tenant/donation-channels/{id}:
-    delete:
-      parameters:
-      - description: id
-        in: path
-        name: id
-        required: true
-        type: integer
-      responses:
-        "200":
-          description: OK
-          schema:
-            additionalProperties: true
-            type: object
-      security:
-      - BearerAuth: []
-      summary: Delete donation channel
-      tags:
-      - Engagement
-    get:
-      parameters:
-      - description: id
-        in: path
-        name: id
-        required: true
-        type: integer
-      responses:
-        "200":
-          description: OK
-          schema:
-            additionalProperties: true
-            type: object
-      security:
-      - BearerAuth: []
-      summary: Get donation channel
-      tags:
-      - Engagement
-    put:
-      parameters:
-      - description: id
-        in: path
-        name: id
-        required: true
-        type: integer
-      - description: payload
-        in: body
-        name: payload
-        required: true
-        schema:
-          type: object
-      responses:
-        "200":
-          description: OK
-          schema:
-            additionalProperties: true
-            type: object
-      security:
-      - BearerAuth: []
-      summary: Update donation channel
-      tags:
-      - Engagement
   /tenant/events:
     get:
       responses:
@@ -915,6 +1162,38 @@ paths:
       summary: Get tenant context
       tags:
       - Tenant
+  /tenant/pg-config:
+    get:
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get payment gateway config
+      tags:
+      - Finance
+    put:
+      parameters:
+      - description: payload
+        in: body
+        name: payload
+        required: true
+        schema:
+          type: object
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Upsert payment gateway config
+      tags:
+      - Finance
   /tenant/posts:
     get:
       parameters:
@@ -1576,6 +1855,99 @@ paths:
       summary: Upsert static page by slug
       tags:
       - StaticPages
+  /tenant/static-payment-methods:
+    get:
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: List donation channels
+      tags:
+      - Engagement
+    post:
+      parameters:
+      - description: payload
+        in: body
+        name: payload
+        required: true
+        schema:
+          type: object
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Create donation channel
+      tags:
+      - Engagement
+  /tenant/static-payment-methods/{id}:
+    delete:
+      parameters:
+      - description: id
+        in: path
+        name: id
+        required: true
+        type: integer
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Delete donation channel
+      tags:
+      - Engagement
+    get:
+      parameters:
+      - description: id
+        in: path
+        name: id
+        required: true
+        type: integer
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get donation channel
+      tags:
+      - Engagement
+    put:
+      parameters:
+      - description: id
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: payload
+        in: body
+        name: payload
+        required: true
+        schema:
+          type: object
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Update donation channel
+      tags:
+      - Engagement
   /tenant/subscription/activate-free:
     post:
       responses:
@@ -1609,6 +1981,26 @@ paths:
       summary: Create subscription checkout
       tags:
       - Billing
+  /tenant/subscription/checkout-v2:
+    post:
+      parameters:
+      - description: payload
+        in: body
+        name: payload
+        required: true
+        schema:
+          type: object
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Create subscription checkout from quote
+      tags:
+      - Billing
   /tenant/subscription/plans:
     get:
       responses:
@@ -1620,6 +2012,48 @@ paths:
       security:
       - BearerAuth: []
       summary: List subscription plans
+      tags:
+      - Billing
+  /tenant/subscription/quote:
+    post:
+      parameters:
+      - description: payload
+        in: body
+        name: payload
+        required: true
+        schema:
+          type: object
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get subscription quote
+      tags:
+      - Billing
+  /tenant/subscription/transactions:
+    get:
+      parameters:
+      - description: page
+        in: query
+        name: page
+        type: integer
+      - description: limit
+        in: query
+        name: limit
+        type: integer
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: List subscription transactions
       tags:
       - Billing
   /tenant/subscription/transactions/{id}:
@@ -1812,6 +2246,39 @@ paths:
       summary: Bulk update website features
       tags:
       - Engagement
+  /webhook/midtrans:
+    post:
+      parameters:
+      - description: payload
+        in: body
+        name: payload
+        required: true
+        schema:
+          type: object
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Midtrans webhook callback
+      tags:
+      - Webhook
 securityDefinitions:
   BearerAuth:
     in: header

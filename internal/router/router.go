@@ -24,6 +24,16 @@ import (
 func SetupRoutes(app *fiber.App, db *pgxpool.Pool, log *logrus.Logger) {
 	api := app.Group("/api/v1")
 	app.Get("/swagger/*", fiberSwagger.HandlerDefault)
+	app.Get("/docs", func(c *fiber.Ctx) error {
+		return c.Redirect("/swagger/index.html", fiber.StatusTemporaryRedirect)
+	})
+	api.Get("/docs", func(c *fiber.Ctx) error {
+		return response.Success(c, fiber.StatusOK, "api docs available", fiber.Map{
+			"swagger_ui":   "/swagger/index.html",
+			"swagger_json": "/swagger/doc.json",
+			"swagger_yaml": "/docs/swagger.yaml",
+		}, nil)
+	})
 	healthHandler := func(c *fiber.Ctx) error {
 		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 		defer cancel()

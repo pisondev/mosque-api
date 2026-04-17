@@ -1,0 +1,141 @@
+{
+  "info": {
+    "_postman_id": "f7b1fd79-ce3b-4c69-915d-ef5194556dfe",
+    "name": "Etakmir - 08 Webhook",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Simulasi callback Midtrans. Skenario default aman untuk smoke test, dan template existing order menghitung signature_key otomatis di pre-request script."
+  },
+  "item": [
+    {
+      "name": "00. Unknown Order",
+      "item": [
+        {
+          "name": "POST /webhook/midtrans unknown order",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.environment.set('webhookOrderId', `unknown-order-${Date.now()}`);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status code is 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "pm.test('unknown order is ignored safely', function () {",
+                  "  pm.expect(json.status).to.eql('success');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"transaction_status\": \"{{webhookTransactionStatus}}\",\n  \"order_id\": \"{{webhookOrderId}}\",\n  \"transaction_id\": \"{{webhookTransactionId}}\",\n  \"gross_amount\": \"{{webhookGrossAmount}}\",\n  \"payment_type\": \"{{webhookPaymentType}}\",\n  \"signature_key\": \"invalid-or-empty-is-ok-for-unknown-order\",\n  \"status_code\": \"{{webhookStatusCode}}\",\n  \"transaction_time\": \"{{webhookTransactionTime}}\",\n  \"fraud_status\": \"{{webhookFraudStatus}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/webhook/midtrans",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "webhook",
+                "midtrans"
+              ]
+            },
+            "description": "Smoke test aman. Karena `order_id` tidak dikenal sistem, handler akan mengabaikan webhook dan mengembalikan 200 success tanpa perlu signature valid."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "01. Existing Order Template",
+      "item": [
+        {
+          "name": "POST /webhook/midtrans existing order",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const orderId = pm.environment.get('webhookOrderId') || pm.environment.get('subscriptionTransactionId') || pm.environment.get('campaignId');",
+                  "const statusCode = pm.environment.get('webhookStatusCode') || '200';",
+                  "const grossAmount = pm.environment.get('webhookGrossAmount') || '10000.00';",
+                  "const serverKey = pm.environment.get('webhookServerKey');",
+                  "if (!serverKey) {",
+                  "  throw new Error('Set webhookServerKey terlebih dahulu untuk menghitung signature_key');",
+                  "}",
+                  "if (!orderId) {",
+                  "  throw new Error('Set webhookOrderId ke order_id transaksi nyata terlebih dahulu');",
+                  "}",
+                  "pm.environment.set('webhookOrderId', orderId);",
+                  "const raw = `${orderId}${statusCode}${grossAmount}${serverKey}`;",
+                  "const signature = CryptoJS.SHA512(raw).toString(CryptoJS.enc.Hex);",
+                  "pm.environment.set('webhookSignatureKey', signature);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"transaction_status\": \"{{webhookTransactionStatus}}\",\n  \"order_id\": \"{{webhookOrderId}}\",\n  \"transaction_id\": \"{{webhookTransactionId}}\",\n  \"gross_amount\": \"{{webhookGrossAmount}}\",\n  \"payment_type\": \"{{webhookPaymentType}}\",\n  \"signature_key\": \"{{webhookSignatureKey}}\",\n  \"status_code\": \"{{webhookStatusCode}}\",\n  \"transaction_time\": \"{{webhookTransactionTime}}\",\n  \"fraud_status\": \"{{webhookFraudStatus}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/webhook/midtrans",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "webhook",
+                "midtrans"
+              ]
+            },
+            "description": "Template untuk transaksi nyata. Isi `webhookOrderId`, `webhookGrossAmount`, dan `webhookServerKey` sesuai transaksi agar signature_key dihitung otomatis di pre-request script."
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "variable": []
+}

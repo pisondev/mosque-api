@@ -1,0 +1,580 @@
+{
+  "info": {
+    "_postman_id": "804de2a9-b86d-41dd-9f6d-56ee11d7c635",
+    "name": "Etakmir - 04 Community",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Module community untuk mengelola event, album galeri, item galeri, dan anggota pengurus tenant."
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{bearerToken}}",
+        "type": "string"
+      }
+    ]
+  },
+  "item": [
+    {
+      "name": "00. Events",
+      "item": [
+        {
+          "name": "GET /tenant/events",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tenant/events?page=1&limit=10&category={{eventCategory}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "tenant", "events"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" },
+                { "key": "category", "value": "{{eventCategory}}" }
+              ]
+            },
+            "description": "List event tenant dengan filter kategori."
+          },
+          "response": []
+        },
+        {
+          "name": "POST /tenant/events",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.environment.set('eventTitle', `Event ${Date.now()}`);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status code is 201', function () {",
+                  "  pm.response.to.have.status(201);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "const id = json?.data?.id;",
+                  "if (id !== undefined && id !== null) pm.environment.set('eventId', String(id));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"{{eventTitle}}\",\n  \"category\": \"{{eventCategory}}\",\n  \"speaker_name\": \"Ustadz Salim\",\n  \"person_in_charge\": \"Takmir Inti\",\n  \"description\": \"Kajian pekanan untuk jamaah umum\",\n  \"note_public\": \"Terbuka untuk umum\",\n  \"note_internal\": \"Siapkan sound system lebih awal\",\n  \"start_date\": \"{{worshipDate}}\",\n  \"end_date\": \"{{worshipDate}}\",\n  \"time_mode\": \"fixed\",\n  \"start_time\": \"19:30\",\n  \"end_time\": \"21:00\",\n  \"after_prayer\": null,\n  \"after_prayer_offset_min\": null,\n  \"repeat_pattern\": null,\n  \"repeat_weekdays\": [],\n  \"audience\": \"public\",\n  \"capacity\": 150,\n  \"fee_type\": \"free\",\n  \"fee_amount\": \"0\",\n  \"contact_phone\": \"6281234567890\",\n  \"location_inside\": \"Aula utama\",\n  \"location_outside\": null,\n  \"status\": \"draft\",\n  \"poster_image_url\": \"{{headerImageUrl}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tenant/events",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "tenant", "events"]
+            },
+            "description": "Membuat event tenant dan menyimpan `eventId`."
+          },
+          "response": []
+        },
+        {
+          "name": "GET /tenant/events/:id",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tenant/events/{{eventId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "tenant", "events", "{{eventId}}"]
+            },
+            "description": "Detail event tenant."
+          },
+          "response": []
+        },
+        {
+          "name": "PUT /tenant/events/:id",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"{{eventTitle}} Updated\",\n  \"category\": \"{{eventCategory}}\",\n  \"speaker_name\": \"Ustadz Salim Update\",\n  \"person_in_charge\": \"Takmir Program\",\n  \"description\": \"Kajian pekanan versi update\",\n  \"note_public\": \"Terbuka untuk ikhwan dan akhwat\",\n  \"note_internal\": \"Koordinasi konsumsi\",\n  \"start_date\": \"{{worshipDate}}\",\n  \"end_date\": \"{{worshipDate}}\",\n  \"time_mode\": \"fixed\",\n  \"start_time\": \"19:45\",\n  \"end_time\": \"21:15\",\n  \"after_prayer\": null,\n  \"after_prayer_offset_min\": null,\n  \"repeat_pattern\": null,\n  \"repeat_weekdays\": [],\n  \"audience\": \"public\",\n  \"capacity\": 175,\n  \"fee_type\": \"free\",\n  \"fee_amount\": \"0\",\n  \"contact_phone\": \"6281234567890\",\n  \"location_inside\": \"Aula lantai 2\",\n  \"location_outside\": null,\n  \"status\": \"draft\",\n  \"poster_image_url\": \"{{headerImageUrl}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tenant/events/{{eventId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "tenant", "events", "{{eventId}}"]
+            },
+            "description": "Update data event tenant."
+          },
+          "response": []
+        },
+        {
+          "name": "PATCH /tenant/events/:id/status",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"published\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tenant/events/{{eventId}}/status",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "tenant", "events", "{{eventId}}", "status"]
+            },
+            "description": "Publish atau ubah status event tenant."
+          },
+          "response": []
+        },
+        {
+          "name": "DELETE /tenant/events/:id",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tenant/events/{{eventId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "tenant", "events", "{{eventId}}"]
+            },
+            "description": "Cleanup event tenant."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "01. Gallery Albums",
+      "item": [
+        {
+          "name": "GET /tenant/gallery/albums",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tenant/gallery/albums?page=1&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "tenant", "gallery", "albums"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" }
+              ]
+            },
+            "description": "List album galeri tenant."
+          },
+          "response": []
+        },
+        {
+          "name": "POST /tenant/gallery/albums",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.environment.set('albumTitle', `Album ${Date.now()}`);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status code is 201', function () {",
+                  "  pm.response.to.have.status(201);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "const id = json?.data?.id;",
+                  "if (id !== undefined && id !== null) pm.environment.set('albumId', String(id));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"{{albumTitle}}\",\n  \"description\": \"Album dokumentasi kegiatan komunitas\",\n  \"start_date\": \"{{worshipDate}}\",\n  \"end_date\": \"{{worshipDateTo}}\",\n  \"media_kind\": \"{{albumMediaKind}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tenant/gallery/albums",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "tenant", "gallery", "albums"]
+            },
+            "description": "Membuat album galeri dan menyimpan `albumId`."
+          },
+          "response": []
+        },
+        {
+          "name": "GET /tenant/gallery/albums/:id",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tenant/gallery/albums/{{albumId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "tenant", "gallery", "albums", "{{albumId}}"]
+            },
+            "description": "Detail album galeri."
+          },
+          "response": []
+        },
+        {
+          "name": "PUT /tenant/gallery/albums/:id",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"{{albumTitle}} Updated\",\n  \"description\": \"Album dokumentasi versi update\",\n  \"start_date\": \"{{worshipDate}}\",\n  \"end_date\": \"{{worshipDateTo}}\",\n  \"media_kind\": \"{{albumMediaKind}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tenant/gallery/albums/{{albumId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "tenant", "gallery", "albums", "{{albumId}}"]
+            },
+            "description": "Update album galeri tenant."
+          },
+          "response": []
+        },
+        {
+          "name": "DELETE /tenant/gallery/albums/:id",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tenant/gallery/albums/{{albumId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "tenant", "gallery", "albums", "{{albumId}}"]
+            },
+            "description": "Cleanup album galeri. Jalankan setelah gallery item terkait tidak dipakai."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "02. Gallery Items",
+      "item": [
+        {
+          "name": "GET /tenant/gallery/items",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tenant/gallery/items?page=1&limit=10&album_id={{albumId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "tenant", "gallery", "items"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" },
+                { "key": "album_id", "value": "{{albumId}}" }
+              ]
+            },
+            "description": "List item galeri tenant."
+          },
+          "response": []
+        },
+        {
+          "name": "POST /tenant/gallery/items",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const mediaUrl = pm.environment.get('headerImageUrl') || pm.environment.get('oldUploadUrl') || pm.environment.get('galleryMediaUrl');",
+                  "if (mediaUrl) pm.environment.set('galleryMediaUrl', mediaUrl);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status code is 201', function () {",
+                  "  pm.response.to.have.status(201);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "const id = json?.data?.id;",
+                  "if (id !== undefined && id !== null) pm.environment.set('galleryItemId', String(id));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"album_id\": {{albumId}},\n  \"media_type\": \"image\",\n  \"media_url\": \"{{galleryMediaUrl}}\",\n  \"caption\": \"Dokumentasi kegiatan komunitas\",\n  \"taken_at\": \"2026-04-17T10:00:00Z\",\n  \"location_note\": \"Aula utama\",\n  \"is_highlight\": true,\n  \"sort_order\": 1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tenant/gallery/items",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "tenant", "gallery", "items"]
+            },
+            "description": "Membuat item galeri. Isi `galleryMediaUrl` dari upload management/media bila belum terisi."
+          },
+          "response": []
+        },
+        {
+          "name": "GET /tenant/gallery/items/:id",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tenant/gallery/items/{{galleryItemId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "tenant", "gallery", "items", "{{galleryItemId}}"]
+            },
+            "description": "Detail item galeri."
+          },
+          "response": []
+        },
+        {
+          "name": "PUT /tenant/gallery/items/:id",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"album_id\": {{albumId}},\n  \"media_type\": \"image\",\n  \"media_url\": \"{{galleryMediaUrl}}\",\n  \"caption\": \"Dokumentasi kegiatan komunitas versi update\",\n  \"taken_at\": \"2026-04-17T11:00:00Z\",\n  \"location_note\": \"Selasar masjid\",\n  \"is_highlight\": false,\n  \"sort_order\": 2\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tenant/gallery/items/{{galleryItemId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "tenant", "gallery", "items", "{{galleryItemId}}"]
+            },
+            "description": "Update item galeri tenant."
+          },
+          "response": []
+        },
+        {
+          "name": "DELETE /tenant/gallery/items/:id",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tenant/gallery/items/{{galleryItemId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "tenant", "gallery", "items", "{{galleryItemId}}"]
+            },
+            "description": "Cleanup item galeri."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "03. Management Members",
+      "item": [
+        {
+          "name": "GET /tenant/management-members",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tenant/management-members?page=1&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "tenant", "management-members"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" }
+              ]
+            },
+            "description": "List anggota pengurus tenant."
+          },
+          "response": []
+        },
+        {
+          "name": "POST /tenant/management-members",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.environment.set('managementMemberName', `Pengurus ${Date.now()}`);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status code is 201', function () {",
+                  "  pm.response.to.have.status(201);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "const id = json?.data?.id;",
+                  "if (id !== undefined && id !== null) pm.environment.set('managementMemberId', String(id));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"full_name\": \"{{managementMemberName}}\",\n  \"role_title\": \"Ketua Takmir\",\n  \"phone_whatsapp\": \"6281234567890\",\n  \"profile_image_url\": \"{{headerImageUrl}}\",\n  \"show_public\": true,\n  \"sort_order\": 1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tenant/management-members",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "tenant", "management-members"]
+            },
+            "description": "Membuat anggota pengurus tenant dan menyimpan `managementMemberId`."
+          },
+          "response": []
+        },
+        {
+          "name": "GET /tenant/management-members/:id",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tenant/management-members/{{managementMemberId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "tenant", "management-members", "{{managementMemberId}}"]
+            },
+            "description": "Detail anggota pengurus."
+          },
+          "response": []
+        },
+        {
+          "name": "PUT /tenant/management-members/:id",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"full_name\": \"{{managementMemberName}} Updated\",\n  \"role_title\": \"Sekretaris Takmir\",\n  \"phone_whatsapp\": \"6281234567890\",\n  \"profile_image_url\": \"{{headerImageUrl}}\",\n  \"show_public\": true,\n  \"sort_order\": 2\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tenant/management-members/{{managementMemberId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "tenant", "management-members", "{{managementMemberId}}"]
+            },
+            "description": "Update anggota pengurus tenant."
+          },
+          "response": []
+        },
+        {
+          "name": "DELETE /tenant/management-members/:id",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tenant/management-members/{{managementMemberId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "tenant", "management-members", "{{managementMemberId}}"]
+            },
+            "description": "Cleanup anggota pengurus tenant."
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "variable": []
+}

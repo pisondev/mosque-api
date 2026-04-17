@@ -13,6 +13,7 @@ import (
 // @title Mosque SaaS API
 // @version 1.0
 // @description REST API untuk Multi-Tenant Mosque Management System.
+// @BasePath /api/v1
 // @securityDefinitions.apikey BearerAuth
 // @in header
 // @name Authorization

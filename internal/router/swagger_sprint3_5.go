@@ -321,24 +321,24 @@ func swaggerTenantManagementMembersDelete() {}
 // @Tags Engagement
 // @Security BearerAuth
 // @Success 200 {object} map[string]interface{}
-// @Router /tenant/donation-channels [get]
-func swaggerTenantDonationChannelsList() {}
+// @Router /tenant/static-payment-methods [get]
+func swaggerTenantStaticPaymentMethodsList() {}
 
 // @Summary Create donation channel
 // @Tags Engagement
 // @Security BearerAuth
 // @Param payload body object true "payload"
 // @Success 201 {object} map[string]interface{}
-// @Router /tenant/donation-channels [post]
-func swaggerTenantDonationChannelsCreate() {}
+// @Router /tenant/static-payment-methods [post]
+func swaggerTenantStaticPaymentMethodsCreate() {}
 
 // @Summary Get donation channel
 // @Tags Engagement
 // @Security BearerAuth
 // @Param id path int true "id"
 // @Success 200 {object} map[string]interface{}
-// @Router /tenant/donation-channels/{id} [get]
-func swaggerTenantDonationChannelsGet() {}
+// @Router /tenant/static-payment-methods/{id} [get]
+func swaggerTenantStaticPaymentMethodsGet() {}
 
 // @Summary Update donation channel
 // @Tags Engagement
@@ -346,16 +346,16 @@ func swaggerTenantDonationChannelsGet() {}
 // @Param id path int true "id"
 // @Param payload body object true "payload"
 // @Success 200 {object} map[string]interface{}
-// @Router /tenant/donation-channels/{id} [put]
-func swaggerTenantDonationChannelsUpdate() {}
+// @Router /tenant/static-payment-methods/{id} [put]
+func swaggerTenantStaticPaymentMethodsUpdate() {}
 
 // @Summary Delete donation channel
 // @Tags Engagement
 // @Security BearerAuth
 // @Param id path int true "id"
 // @Success 200 {object} map[string]interface{}
-// @Router /tenant/donation-channels/{id} [delete]
-func swaggerTenantDonationChannelsDelete() {}
+// @Router /tenant/static-payment-methods/{id} [delete]
+func swaggerTenantStaticPaymentMethodsDelete() {}
 
 // @Summary List social links
 // @Tags Engagement
@@ -500,8 +500,8 @@ func swaggerPublicManagementMembersList() {}
 // @Tags Public
 // @Param hostname path string true "hostname"
 // @Success 200 {object} map[string]interface{}
-// @Router /public/{hostname}/donation-channels [get]
-func swaggerPublicDonationChannelsList() {}
+// @Router /public/{hostname}/static-payment-methods [get]
+func swaggerPublicStaticPaymentMethodsList() {}
 
 // @Summary Public social links
 // @Tags Public
