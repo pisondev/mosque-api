@@ -1,6 +1,9 @@
 package router
 
 import (
+	"context"
+	"time"
+
 	"github.com/gofiber/fiber/v2"
 	fiberSwagger "github.com/gofiber/swagger"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -13,6 +16,7 @@ import (
 	"github.com/pisondev/mosque-api/internal/module/finance"
 	"github.com/pisondev/mosque-api/internal/module/management"
 	"github.com/pisondev/mosque-api/internal/module/worship"
+	"github.com/pisondev/mosque-api/internal/response"
 	"github.com/pisondev/mosque-api/internal/storage"
 	"github.com/sirupsen/logrus"
 )
@@ -20,6 +24,24 @@ import (
 func SetupRoutes(app *fiber.App, db *pgxpool.Pool, log *logrus.Logger) {
 	api := app.Group("/api/v1")
 	app.Get("/swagger/*", fiberSwagger.HandlerDefault)
+	healthHandler := func(c *fiber.Ctx) error {
+		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+		defer cancel()
+
+		if err := db.Ping(ctx); err != nil {
+			log.WithError(err).Error("health check database ping failed")
+			return response.Error(c, fiber.StatusServiceUnavailable, "database unavailable")
+		}
+
+		return response.Success(c, fiber.StatusOK, "server is healthy", fiber.Map{
+			"service":   "mosque-api",
+			"database":  "up",
+			"timestamp": time.Now().UTC().Format(time.RFC3339),
+		}, nil)
+	}
+
+	app.Get("/health", healthHandler)
+	api.Get("/health", healthHandler)
 
 	// Setup Auth Module (Rute Publik)
 	authRepo := auth.NewRepository(db)

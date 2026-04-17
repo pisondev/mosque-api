@@ -1,0 +1,313 @@
+{
+  "info": {
+    "_postman_id": "9f654549-aa42-4b8b-a872-1645a70f3dc5",
+    "name": "Etakmir - 01 Auth",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Module auth untuk bootstrap akun admin, login, reset password, dan Google Sign-In."
+  },
+  "item": [
+    {
+      "name": "00. Session Bootstrap",
+      "item": [
+        {
+          "name": "Register Admin",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const autoGenerate = (pm.environment.get('autoGenerateRegisterEmail') || 'true').toLowerCase() === 'true';",
+                  "const currentEmail = pm.environment.get('registerEmail');",
+                  "if (autoGenerate || !currentEmail) {",
+                  "  pm.environment.set('registerEmail', `admin+${Date.now()}@example.com`);",
+                  "}",
+                  "pm.environment.set('email', pm.environment.get('registerEmail'));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status code is 201', function () {",
+                  "  pm.response.to.have.status(201);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "pm.test('response status is success', function () {",
+                  "  pm.expect(json.status).to.eql('success');",
+                  "});",
+                  "const token = json?.data?.access_token;",
+                  "const email = json?.data?.email;",
+                  "if (token) pm.environment.set('bearerToken', token);",
+                  "if (email) pm.environment.set('email', email);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{registerEmail}}\",\n  \"password\": \"{{password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/register",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "register"
+              ]
+            },
+            "description": "Mendaftarkan tenant dan user admin baru. Secara default email digenerate unik per request."
+          },
+          "response": []
+        },
+        {
+          "name": "Login Email Password",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status code is 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "pm.test('response status is success', function () {",
+                  "  pm.expect(json.status).to.eql('success');",
+                  "});",
+                  "const token = json?.data?.access_token;",
+                  "if (token) pm.environment.set('bearerToken', token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{email}}\",\n  \"password\": \"{{password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Login admin menggunakan email dan password."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "01. Password Recovery",
+      "item": [
+        {
+          "name": "Forgot Password",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status code is 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "pm.test('response status is success', function () {",
+                  "  pm.expect(json.status).to.eql('success');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{email}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/forgot-password",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "forgot-password"
+              ]
+            },
+            "description": "Meminta email reset password. Token reset tetap harus diambil dari email yang dikirim backend."
+          },
+          "response": []
+        },
+        {
+          "name": "Reset Password",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status code is 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "pm.test('response status is success', function () {",
+                  "  pm.expect(json.status).to.eql('success');",
+                  "});",
+                  "const token = json?.data?.access_token;",
+                  "if (token) pm.environment.set('bearerToken', token);",
+                  "pm.environment.set('password', pm.environment.get('newPassword'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"token\": \"{{resetToken}}\",\n  \"password\": \"{{newPassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/reset-password",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "reset-password"
+              ]
+            },
+            "description": "Mengatur password baru memakai reset token valid."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "02. Federated Login",
+      "item": [
+        {
+          "name": "Google Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status code is 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "pm.test('response status is success', function () {",
+                  "  pm.expect(json.status).to.eql('success');",
+                  "});",
+                  "const token = json?.data?.access_token;",
+                  "const email = json?.data?.email;",
+                  "if (token) pm.environment.set('bearerToken', token);",
+                  "if (email) pm.environment.set('email', email);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"token\": \"{{googleIdToken}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/google",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "google"
+              ]
+            },
+            "description": "Login atau registrasi otomatis menggunakan Google ID token yang valid."
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "variable": []
+}
