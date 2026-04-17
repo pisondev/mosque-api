@@ -23,10 +23,14 @@ func SetupRoutes(app *fiber.App, db *pgxpool.Pool, log *logrus.Logger) {
 
 	// Setup Auth Module (Rute Publik)
 	authRepo := auth.NewRepository(db)
-	authService := auth.NewService(authRepo, log)
+	authService := auth.NewService(authRepo, log, auth.NewResendSender(log))
 	authController := auth.NewController(authService, log)
 
 	authGroup := api.Group("/auth")
+	authGroup.Post("/register", authController.Register)
+	authGroup.Post("/login", authController.Login)
+	authGroup.Post("/forgot-password", authController.ForgotPassword)
+	authGroup.Post("/reset-password", authController.ResetPassword)
 	authGroup.Post("/google", authController.GoogleLogin)
 
 	// ==========================================

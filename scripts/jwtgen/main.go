@@ -40,9 +40,9 @@ func main() {
 		log.Fatal("Error generating token:", err)
 	}
 
-	fmt.Println("\n========================================================")
+	fmt.Println("========================================================")
 	fmt.Println("🎉 TOKEN JWT GENERATED SUCCESSFULLY 🎉")
 	fmt.Println("========================================================")
 	fmt.Println(tokenString)
-	fmt.Println("========================================================\n")
+	fmt.Println("========================================================")
 }
