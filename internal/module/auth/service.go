@@ -26,6 +26,8 @@ type Service interface {
 	ForgotPassword(ctx context.Context, req ForgotPasswordRequest) error
 	ResetPassword(ctx context.Context, req ResetPasswordRequest) (*AuthResponse, error)
 	HandleGoogleLogin(ctx context.Context, req LoginGoogleRequest) (*AuthResponse, error)
+	GetAccountProfile(ctx context.Context, userID string) (*AccountProfileResponse, error)
+	UpdateAccountProfile(ctx context.Context, userID string, req UpdateAccountProfileRequest) (*AccountProfileResponse, error)
 }
 
 type service struct {
@@ -85,6 +87,7 @@ func (s *service) Register(ctx context.Context, req RegisterRequest) (*AuthRespo
 
 	user, err := s.repo.CreateTenantAndUser(ctx, CreateUserParams{
 		Email:        email,
+		DisplayName:  stringPtr(deriveDisplayName(email)),
 		PasswordHash: stringPtr(string(hash)),
 		TenantName:   deriveTenantName(email),
 	})
@@ -211,6 +214,11 @@ func (s *service) HandleGoogleLogin(ctx context.Context, req LoginGoogleRequest)
 	}
 	email := normalizeEmail(emailClaim)
 	googleID := payload.Subject
+	displayName := strings.TrimSpace(claimString(payload.Claims, "name"))
+	if displayName == "" {
+		displayName = deriveDisplayName(email)
+	}
+	avatarURL := strings.TrimSpace(claimString(payload.Claims, "picture"))
 	if strings.TrimSpace(googleID) == "" {
 		return nil, ErrInvalidGoogleToken
 	}
@@ -230,9 +238,11 @@ func (s *service) HandleGoogleLogin(ctx context.Context, req LoginGoogleRequest)
 
 			// Eksekusi Transaction untuk buat Tenant dan User baru
 			user, err = s.repo.CreateTenantAndUser(ctx, CreateUserParams{
-				Email:      email,
-				GoogleID:   stringPtr(googleID),
-				TenantName: deriveTenantName(email),
+				Email:       email,
+				DisplayName: stringPtr(displayName),
+				AvatarURL:   optionalStringPtr(avatarURL),
+				GoogleID:    stringPtr(googleID),
+				TenantName:  deriveTenantName(email),
 			})
 			if err != nil {
 				s.log.Errorf("failed to auto-register user: %v", err)
@@ -246,12 +256,16 @@ func (s *service) HandleGoogleLogin(ctx context.Context, req LoginGoogleRequest)
 			return nil, errors.New("internal server error")
 		}
 	} else {
-		if user.GoogleID == nil || *user.GoogleID == "" {
-			if err := s.repo.AttachGoogleID(ctx, user.ID, googleID); err != nil {
-				s.log.Errorf("failed to attach google id to user %s: %v", email, err)
-				return nil, errors.New("internal server error")
-			}
-			user.GoogleID = stringPtr(googleID)
+		if err := s.repo.SyncGoogleAccount(ctx, user.ID, googleID, stringPtr(displayName), optionalStringPtr(avatarURL)); err != nil {
+			s.log.Errorf("failed to sync google account for user %s: %v", email, err)
+			return nil, errors.New("internal server error")
+		}
+		user.GoogleID = stringPtr(googleID)
+		if user.DisplayName == nil || strings.TrimSpace(*user.DisplayName) == "" {
+			user.DisplayName = stringPtr(displayName)
+		}
+		if (user.AvatarURL == nil || strings.TrimSpace(*user.AvatarURL) == "") && avatarURL != "" {
+			user.AvatarURL = stringPtr(avatarURL)
 		}
 		s.log.Infof("existing user %s logged in", email)
 	}
@@ -265,6 +279,49 @@ func (s *service) HandleGoogleLogin(ctx context.Context, req LoginGoogleRequest)
 	return resp, nil
 }
 
+func (s *service) GetAccountProfile(ctx context.Context, userID string) (*AccountProfileResponse, error) {
+	user, err := s.repo.FindByID(ctx, userID)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, ErrInvalidCredentials
+		}
+		s.log.Errorf("database error during account profile lookup: %v", err)
+		return nil, errors.New("internal server error")
+	}
+
+	return buildAccountProfileResponse(user), nil
+}
+
+func (s *service) UpdateAccountProfile(ctx context.Context, userID string, req UpdateAccountProfileRequest) (*AccountProfileResponse, error) {
+	displayName := strings.TrimSpace(req.DisplayName)
+	if displayName == "" {
+		return nil, ValidationError{Fields: []response.FieldError{{Field: "display_name", Message: "display name is required"}}}
+	}
+	if len(displayName) > 80 {
+		return nil, ValidationError{Fields: []response.FieldError{{Field: "display_name", Message: "display name must be at most 80 characters"}}}
+	}
+
+	var avatarURL *string
+	if req.AvatarURL != nil {
+		trimmed := strings.TrimSpace(*req.AvatarURL)
+		avatarURL = &trimmed
+		if trimmed == "" {
+			avatarURL = nil
+		}
+	}
+
+	user, err := s.repo.UpdateAccountProfile(ctx, userID, UpdateAccountProfileParams{
+		DisplayName: displayName,
+		AvatarURL:   avatarURL,
+	})
+	if err != nil {
+		s.log.Errorf("failed to update account profile: %v", err)
+		return nil, errors.New("internal server error")
+	}
+
+	return buildAccountProfileResponse(user), nil
+}
+
 func buildAuthResponse(user *User) (*AuthResponse, error) {
 	tokenString, err := utils.GenerateToken(user.ID, user.TenantID, user.Email, user.Role)
 	if err != nil {
@@ -274,8 +331,20 @@ func buildAuthResponse(user *User) (*AuthResponse, error) {
 	return &AuthResponse{
 		AccessToken: tokenString,
 		Email:       user.Email,
+		DisplayName: stringValue(user.DisplayName),
+		AvatarURL:   stringValue(user.AvatarURL),
 		Role:        user.Role,
 	}, nil
+}
+
+func buildAccountProfileResponse(user *User) *AccountProfileResponse {
+	return &AccountProfileResponse{
+		Email:           user.Email,
+		DisplayName:     stringValueOrDefault(user.DisplayName, deriveDisplayName(user.Email)),
+		AvatarURL:       stringValue(user.AvatarURL),
+		Role:            user.Role,
+		GoogleConnected: user.GoogleID != nil && strings.TrimSpace(*user.GoogleID) != "",
+	}
 }
 
 func validateEmail(email string) error {
@@ -314,6 +383,23 @@ func deriveTenantName(email string) string {
 	return fmt.Sprintf("%s Mosque", strings.Title(localPart))
 }
 
+func deriveDisplayName(email string) string {
+	localPart := strings.Split(email, "@")[0]
+	replacer := strings.NewReplacer(".", " ", "-", " ", "_", " ")
+	cleaned := strings.TrimSpace(replacer.Replace(localPart))
+	if cleaned == "" {
+		return "Admin"
+	}
+	words := strings.Fields(cleaned)
+	for i, word := range words {
+		if word == "" {
+			continue
+		}
+		words[i] = strings.ToUpper(word[:1]) + strings.ToLower(word[1:])
+	}
+	return strings.Join(words, " ")
+}
+
 func generateResetToken() (string, string, error) {
 	buf := make([]byte, 32)
 	if _, err := rand.Read(buf); err != nil {
@@ -337,4 +423,35 @@ func webBaseURL() string {
 
 func stringPtr(value string) *string {
 	return &value
+}
+
+func optionalStringPtr(value string) *string {
+	trimmed := strings.TrimSpace(value)
+	if trimmed == "" {
+		return nil
+	}
+	return &trimmed
+}
+
+func stringValue(value *string) string {
+	if value == nil {
+		return ""
+	}
+	return strings.TrimSpace(*value)
+}
+
+func stringValueOrDefault(value *string, fallback string) string {
+	trimmed := stringValue(value)
+	if trimmed == "" {
+		return fallback
+	}
+	return trimmed
+}
+
+func claimString(claims map[string]interface{}, key string) string {
+	value, ok := claims[key].(string)
+	if !ok {
+		return ""
+	}
+	return value
 }

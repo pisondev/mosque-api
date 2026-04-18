@@ -2,6 +2,8 @@ package auth
 
 import (
 	"errors"
+	"fmt"
+	"strings"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/pisondev/mosque-api/internal/response"
@@ -14,6 +16,8 @@ type Controller interface {
 	ForgotPassword(c *fiber.Ctx) error
 	ResetPassword(c *fiber.Ctx) error
 	GoogleLogin(c *fiber.Ctx) error
+	GetAccountProfile(c *fiber.Ctx) error
+	UpdateAccountProfile(c *fiber.Ctx) error
 }
 
 type controller struct {
@@ -94,6 +98,46 @@ func (ctrl *controller) GoogleLogin(c *fiber.Ctx) error {
 	}
 
 	return response.Success(c, fiber.StatusOK, "google login successful", resp, nil)
+}
+
+func (ctrl *controller) GetAccountProfile(c *fiber.Ctx) error {
+	userID := getUserID(c)
+	if userID == "" {
+		return response.Error(c, fiber.StatusUnauthorized, "unauthorized")
+	}
+
+	resp, err := ctrl.service.GetAccountProfile(c.Context(), userID)
+	if err != nil {
+		return handleAuthError(c, err)
+	}
+
+	return response.Success(c, fiber.StatusOK, "account profile loaded", resp, nil)
+}
+
+func (ctrl *controller) UpdateAccountProfile(c *fiber.Ctx) error {
+	userID := getUserID(c)
+	if userID == "" {
+		return response.Error(c, fiber.StatusUnauthorized, "unauthorized")
+	}
+
+	var req UpdateAccountProfileRequest
+	if err := c.BodyParser(&req); err != nil {
+		return response.Validation(c, "validation failed", []response.FieldError{{Field: "body", Message: "invalid request format"}})
+	}
+
+	resp, err := ctrl.service.UpdateAccountProfile(c.Context(), userID, req)
+	if err != nil {
+		return handleAuthError(c, err)
+	}
+
+	return response.Success(c, fiber.StatusOK, "account profile updated", resp, nil)
+}
+
+func getUserID(c *fiber.Ctx) string {
+	if value := c.Locals("user_id"); value != nil {
+		return strings.TrimSpace(fmt.Sprintf("%v", value))
+	}
+	return ""
 }
 
 func handleAuthError(c *fiber.Ctx, err error) error {

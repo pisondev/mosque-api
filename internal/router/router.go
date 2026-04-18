@@ -71,6 +71,8 @@ func SetupRoutes(app *fiber.App, db *pgxpool.Pool, log *logrus.Logger) {
 
 	// Semua rute di bawah "tenantGroup" ini otomatis dilindungi oleh middleware.Protected()
 	tenantGroup := api.Group("/tenant", middleware.Protected())
+	tenantGroup.Get("/account-profile", authController.GetAccountProfile)
+	tenantGroup.Put("/account-profile", authController.UpdateAccountProfile)
 
 	managementRepo := management.NewRepository(db)
 	managementService := management.NewService(managementRepo, log)
