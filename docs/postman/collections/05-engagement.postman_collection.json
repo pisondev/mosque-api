@@ -1,0 +1,497 @@
+{
+  "info": {
+    "_postman_id": "bd361631-b3f0-4fc6-b0cb-8c92929bcecf",
+    "name": "Etakmir - 05 Engagement",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Module engagement untuk channel donasi statis, social links, external links, feature catalog, dan website features tenant."
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{bearerToken}}",
+        "type": "string"
+      }
+    ]
+  },
+  "item": [
+    {
+      "name": "00. Static Payment Methods",
+      "item": [
+        {
+          "name": "GET /tenant/static-payment-methods",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tenant/static-payment-methods?page=1&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "tenant", "static-payment-methods"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" }
+              ]
+            },
+            "description": "List channel donasi statis tenant."
+          },
+          "response": []
+        },
+        {
+          "name": "POST /tenant/static-payment-methods",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.environment.set('paymentMethodLabel', `Channel ${Date.now()}`);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status code is 201', function () {",
+                  "  pm.response.to.have.status(201);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "const id = json?.data?.id;",
+                  "if (id !== undefined && id !== null) pm.environment.set('paymentMethodId', String(id));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"channel_type\": \"{{paymentChannelType}}\",\n  \"label\": \"{{paymentMethodLabel}}\",\n  \"bank_name\": \"Bank Syariah Indonesia\",\n  \"bank_branch\": \"Cabang Surabaya\",\n  \"account_number\": \"1234567890\",\n  \"account_holder_name\": \"Masjid Etakmir\",\n  \"qris_image_url\": \"{{headerImageUrl}}\",\n  \"merchant_id\": \"MID-ETAKMIR-001\",\n  \"description\": \"Channel donasi utama\",\n  \"sort_order\": 1,\n  \"is_public\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tenant/static-payment-methods",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "tenant", "static-payment-methods"]
+            },
+            "description": "Membuat channel donasi statis dan menyimpan `paymentMethodId`."
+          },
+          "response": []
+        },
+        {
+          "name": "GET /tenant/static-payment-methods/:id",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tenant/static-payment-methods/{{paymentMethodId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "tenant", "static-payment-methods", "{{paymentMethodId}}"]
+            },
+            "description": "Detail channel donasi statis."
+          },
+          "response": []
+        },
+        {
+          "name": "PUT /tenant/static-payment-methods/:id",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"channel_type\": \"{{paymentChannelType}}\",\n  \"label\": \"{{paymentMethodLabel}} Updated\",\n  \"bank_name\": \"Bank Syariah Indonesia\",\n  \"bank_branch\": \"Cabang Sidoarjo\",\n  \"account_number\": \"1234567890\",\n  \"account_holder_name\": \"Masjid Etakmir Update\",\n  \"qris_image_url\": \"{{headerImageUrl}}\",\n  \"merchant_id\": \"MID-ETAKMIR-002\",\n  \"description\": \"Channel donasi versi update\",\n  \"sort_order\": 2,\n  \"is_public\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tenant/static-payment-methods/{{paymentMethodId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "tenant", "static-payment-methods", "{{paymentMethodId}}"]
+            },
+            "description": "Update channel donasi statis tenant."
+          },
+          "response": []
+        },
+        {
+          "name": "DELETE /tenant/static-payment-methods/:id",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tenant/static-payment-methods/{{paymentMethodId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "tenant", "static-payment-methods", "{{paymentMethodId}}"]
+            },
+            "description": "Cleanup channel donasi statis."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "01. Social Links",
+      "item": [
+        {
+          "name": "GET /tenant/social-links",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tenant/social-links?page=1&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "tenant", "social-links"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" }
+              ]
+            },
+            "description": "List social link tenant."
+          },
+          "response": []
+        },
+        {
+          "name": "POST /tenant/social-links",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status code is 201', function () {",
+                  "  pm.response.to.have.status(201);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "const id = json?.data?.id;",
+                  "if (id !== undefined && id !== null) pm.environment.set('socialLinkId', String(id));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"platform\": \"{{socialPlatform}}\",\n  \"account_name\": \"etakmir.official\",\n  \"url\": \"https://instagram.com/etakmir.official\",\n  \"description\": \"Akun media sosial resmi\",\n  \"show_in_footer\": true,\n  \"show_in_contact_page\": true,\n  \"sort_order\": 1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tenant/social-links",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "tenant", "social-links"]
+            },
+            "description": "Membuat social link dan menyimpan `socialLinkId`."
+          },
+          "response": []
+        },
+        {
+          "name": "GET /tenant/social-links/:id",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tenant/social-links/{{socialLinkId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "tenant", "social-links", "{{socialLinkId}}"]
+            },
+            "description": "Detail social link."
+          },
+          "response": []
+        },
+        {
+          "name": "PUT /tenant/social-links/:id",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"platform\": \"{{socialPlatform}}\",\n  \"account_name\": \"etakmir.update\",\n  \"url\": \"https://instagram.com/etakmir.update\",\n  \"description\": \"Akun media sosial resmi versi update\",\n  \"show_in_footer\": true,\n  \"show_in_contact_page\": false,\n  \"sort_order\": 2\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tenant/social-links/{{socialLinkId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "tenant", "social-links", "{{socialLinkId}}"]
+            },
+            "description": "Update social link tenant."
+          },
+          "response": []
+        },
+        {
+          "name": "DELETE /tenant/social-links/:id",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tenant/social-links/{{socialLinkId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "tenant", "social-links", "{{socialLinkId}}"]
+            },
+            "description": "Cleanup social link tenant."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "02. External Links",
+      "item": [
+        {
+          "name": "GET /tenant/external-links",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tenant/external-links?page=1&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "tenant", "external-links"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" }
+              ]
+            },
+            "description": "List external link tenant."
+          },
+          "response": []
+        },
+        {
+          "name": "POST /tenant/external-links",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.environment.set('externalLinkLabel', `External Link ${Date.now()}`);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status code is 201', function () {",
+                  "  pm.response.to.have.status(201);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "const id = json?.data?.id;",
+                  "if (id !== undefined && id !== null) pm.environment.set('externalLinkId', String(id));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"link_type\": \"{{externalLinkType}}\",\n  \"label\": \"{{externalLinkLabel}}\",\n  \"url\": \"https://forms.gle/etakmir-demo\",\n  \"note\": \"Form pendaftaran kegiatan\",\n  \"visibility\": \"public\",\n  \"sort_order\": 1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tenant/external-links",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "tenant", "external-links"]
+            },
+            "description": "Membuat external link dan menyimpan `externalLinkId`."
+          },
+          "response": []
+        },
+        {
+          "name": "GET /tenant/external-links/:id",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tenant/external-links/{{externalLinkId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "tenant", "external-links", "{{externalLinkId}}"]
+            },
+            "description": "Detail external link."
+          },
+          "response": []
+        },
+        {
+          "name": "PUT /tenant/external-links/:id",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"link_type\": \"{{externalLinkType}}\",\n  \"label\": \"{{externalLinkLabel}} Updated\",\n  \"url\": \"https://forms.gle/etakmir-update\",\n  \"note\": \"Form pendaftaran versi update\",\n  \"visibility\": \"public\",\n  \"sort_order\": 2\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tenant/external-links/{{externalLinkId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "tenant", "external-links", "{{externalLinkId}}"]
+            },
+            "description": "Update external link tenant."
+          },
+          "response": []
+        },
+        {
+          "name": "DELETE /tenant/external-links/:id",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tenant/external-links/{{externalLinkId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "tenant", "external-links", "{{externalLinkId}}"]
+            },
+            "description": "Cleanup external link tenant."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "03. Website Features",
+      "item": [
+        {
+          "name": "GET /tenant/feature-catalog",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tenant/feature-catalog",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "tenant", "feature-catalog"]
+            },
+            "description": "List katalog fitur website yang tersedia. Pilih `featureId` dari response bila perlu."
+          },
+          "response": []
+        },
+        {
+          "name": "GET /tenant/website-features",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tenant/website-features",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "tenant", "website-features"]
+            },
+            "description": "List konfigurasi website feature tenant."
+          },
+          "response": []
+        },
+        {
+          "name": "PUT /tenant/website-features/:feature_id",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"enabled\": true,\n  \"is_active\": true,\n  \"detail\": \"{{featureDetail}}\",\n  \"note\": \"Update single feature dari Postman\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tenant/website-features/{{featureId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "tenant", "website-features", "{{featureId}}"]
+            },
+            "description": "Update satu feature website berdasarkan `featureId`."
+          },
+          "response": []
+        },
+        {
+          "name": "PATCH /tenant/website-features/bulk",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"items\": [\n    {\n      \"feature_id\": {{featureId}},\n      \"enabled\": true,\n      \"is_active\": true,\n      \"detail\": \"{{featureDetail}}\",\n      \"note\": \"Bulk update item 1\"\n    },\n    {\n      \"feature_id\": {{featureId}},\n      \"enabled\": true,\n      \"is_active\": false,\n      \"detail\": \"{{featureDetail}}\",\n      \"note\": \"Bulk update item 2 - contoh payload, ganti feature_id lain bila perlu\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tenant/website-features/bulk",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "tenant", "website-features", "bulk"]
+            },
+            "description": "Bulk update website features. Sebaiknya ganti item kedua dengan `feature_id` berbeda dari hasil katalog."
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "variable": []
+}

@@ -1,6 +1,9 @@
 package router
 
 import (
+	"context"
+	"time"
+
 	"github.com/gofiber/fiber/v2"
 	fiberSwagger "github.com/gofiber/swagger"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -13,19 +16,53 @@ import (
 	"github.com/pisondev/mosque-api/internal/module/finance"
 	"github.com/pisondev/mosque-api/internal/module/management"
 	"github.com/pisondev/mosque-api/internal/module/worship"
+	"github.com/pisondev/mosque-api/internal/response"
+	"github.com/pisondev/mosque-api/internal/storage"
 	"github.com/sirupsen/logrus"
 )
 
 func SetupRoutes(app *fiber.App, db *pgxpool.Pool, log *logrus.Logger) {
 	api := app.Group("/api/v1")
 	app.Get("/swagger/*", fiberSwagger.HandlerDefault)
+	app.Get("/docs", func(c *fiber.Ctx) error {
+		return c.Redirect("/swagger/index.html", fiber.StatusTemporaryRedirect)
+	})
+	api.Get("/docs", func(c *fiber.Ctx) error {
+		return response.Success(c, fiber.StatusOK, "api docs available", fiber.Map{
+			"swagger_ui":   "/swagger/index.html",
+			"swagger_json": "/swagger/doc.json",
+			"swagger_yaml": "/docs/swagger.yaml",
+		}, nil)
+	})
+	healthHandler := func(c *fiber.Ctx) error {
+		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+		defer cancel()
+
+		if err := db.Ping(ctx); err != nil {
+			log.WithError(err).Error("health check database ping failed")
+			return response.Error(c, fiber.StatusServiceUnavailable, "database unavailable")
+		}
+
+		return response.Success(c, fiber.StatusOK, "server is healthy", fiber.Map{
+			"service":   "mosque-api",
+			"database":  "up",
+			"timestamp": time.Now().UTC().Format(time.RFC3339),
+		}, nil)
+	}
+
+	app.Get("/health", healthHandler)
+	api.Get("/health", healthHandler)
 
 	// Setup Auth Module (Rute Publik)
 	authRepo := auth.NewRepository(db)
-	authService := auth.NewService(authRepo, log)
+	authService := auth.NewService(authRepo, log, auth.NewResendSender(log))
 	authController := auth.NewController(authService, log)
 
 	authGroup := api.Group("/auth")
+	authGroup.Post("/register", authController.Register)
+	authGroup.Post("/login", authController.Login)
+	authGroup.Post("/forgot-password", authController.ForgotPassword)
+	authGroup.Post("/reset-password", authController.ResetPassword)
 	authGroup.Post("/google", authController.GoogleLogin)
 
 	// ==========================================
@@ -34,6 +71,8 @@ func SetupRoutes(app *fiber.App, db *pgxpool.Pool, log *logrus.Logger) {
 
 	// Semua rute di bawah "tenantGroup" ini otomatis dilindungi oleh middleware.Protected()
 	tenantGroup := api.Group("/tenant", middleware.Protected())
+	tenantGroup.Get("/account-profile", authController.GetAccountProfile)
+	tenantGroup.Put("/account-profile", authController.UpdateAccountProfile)
 
 	managementRepo := management.NewRepository(db)
 	managementService := management.NewService(managementRepo, log)
@@ -57,6 +96,11 @@ func SetupRoutes(app *fiber.App, db *pgxpool.Pool, log *logrus.Logger) {
 	financeRepo := finance.NewRepository(db)
 	financeService := finance.NewService(financeRepo, log)
 	financeController := finance.NewController(financeService, log)
+
+	// Storage / Upload
+	store := storage.New()
+	tenantGroup.Post("/upload", management.UploadHandler(store, db))
+	tenantGroup.Get("/storage-quota", management.StorageQuotaHandler(store, db))
 
 	tenantGroup.Get("/me", managementController.TenantMe)
 	tenantGroup.Patch("/setup", managementController.SetupTenant)
@@ -84,6 +128,15 @@ func SetupRoutes(app *fiber.App, db *pgxpool.Pool, log *logrus.Logger) {
 	tenantGroup.Put("/static-pages/:slug", managementController.UpsertStaticPage)
 	// Endpoint SaaS State untuk Frontend
 	tenantGroup.Get("/billing-status", managementController.GetBillingStatus)
+	tenantGroup.Get("/subscription/plans", financeController.ListSubscriptionPlans)
+	tenantGroup.Post("/subscription/checkout", financeController.CreateSubscriptionCheckout)
+	tenantGroup.Post("/subscription/quote", financeController.GetSubscriptionQuote)
+	tenantGroup.Post("/subscription/checkout-v2", financeController.CreateSubscriptionCheckoutFromQuote)
+	tenantGroup.Post("/subscription/activate-free", financeController.ActivateFreePlan)
+	tenantGroup.Get("/subscription/transactions", financeController.ListSubscriptionTransactions)
+	tenantGroup.Get("/subscription/transactions/active", financeController.GetActiveSubscriptionTransaction)
+	tenantGroup.Post("/subscription/transactions/:id/cancel", financeController.CancelSubscriptionTransaction)
+	tenantGroup.Get("/subscription/transactions/:id", financeController.GetSubscriptionTransaction)
 
 	tenantGroup.Get("/prayer-time-settings", worshipController.GetPrayerTimeSettings)
 	tenantGroup.Put("/prayer-time-settings", worshipController.UpsertPrayerTimeSettings)

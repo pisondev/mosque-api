@@ -1,0 +1,92 @@
+{
+  "info": {
+    "_postman_id": "739f2761-6d2f-4c24-8445-c2a7172af6b1",
+    "name": "Etakmir - 00 System",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Collection dasar untuk verifikasi server dan endpoint sistem sebelum menguji module lain."
+  },
+  "item": [
+    {
+      "name": "Health",
+      "description": "Pengecekan cepat untuk memastikan API dan koneksi database siap.",
+      "item": [
+        {
+          "name": "GET /health",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status code is 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "pm.test('response status is success', function () {",
+                  "  pm.expect(json.status).to.eql('success');",
+                  "});",
+                  "pm.test('health payload has database state', function () {",
+                  "  pm.expect(json.data.database).to.eql('up');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/health",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "health"
+              ]
+            },
+            "description": "Health check publik untuk memastikan backend dan database sedang tersedia."
+          },
+          "response": []
+        },
+        {
+          "name": "GET /api/v1/health",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status code is 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "pm.test('response status is success', function () {",
+                  "  pm.expect(json.status).to.eql('success');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/health",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "health"
+              ]
+            },
+            "description": "Health check versi API namespace."
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "variable": []
+}

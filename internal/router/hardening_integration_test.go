@@ -118,14 +118,14 @@ func TestHardeningListPerformanceBaseline(t *testing.T) {
 		{name: "tenant prayer times", path: "/api/v1/tenant/prayer-times-daily?page=1&limit=50", authToken: token, max: 2 * time.Second},
 		{name: "tenant events", path: "/api/v1/tenant/events?page=1&limit=50", authToken: token, max: 2 * time.Second},
 		{name: "tenant gallery items", path: "/api/v1/tenant/gallery/items?page=1&limit=50", authToken: token, max: 2 * time.Second},
-		{name: "tenant donation channels", path: "/api/v1/tenant/donation-channels?page=1&limit=50", authToken: token, max: 2 * time.Second},
+		{name: "tenant static payment methods", path: "/api/v1/tenant/static-payment-methods?page=1&limit=50", authToken: token, max: 2 * time.Second},
 		{name: "tenant social links", path: "/api/v1/tenant/social-links?page=1&limit=50", authToken: token, max: 2 * time.Second},
 		{name: "tenant external links", path: "/api/v1/tenant/external-links?page=1&limit=50", authToken: token, max: 2 * time.Second},
 		{name: "tenant feature catalog", path: "/api/v1/tenant/feature-catalog", authToken: token, max: 2 * time.Second},
 		{name: "tenant website features", path: "/api/v1/tenant/website-features", authToken: token, max: 2 * time.Second},
 		{name: "public events", path: fmt.Sprintf("/api/v1/public/%s/events?page=1&limit=50", tenant.Hostname), max: 2 * time.Second},
 		{name: "public gallery items", path: fmt.Sprintf("/api/v1/public/%s/gallery/items?page=1&limit=50", tenant.Hostname), max: 2 * time.Second},
-		{name: "public donation channels", path: fmt.Sprintf("/api/v1/public/%s/donation-channels?page=1&limit=50", tenant.Hostname), max: 2 * time.Second},
+		{name: "public static payment methods", path: fmt.Sprintf("/api/v1/public/%s/static-payment-methods?page=1&limit=50", tenant.Hostname), max: 2 * time.Second},
 		{name: "public external links", path: fmt.Sprintf("/api/v1/public/%s/external-links?page=1&limit=50", tenant.Hostname), max: 2 * time.Second},
 	}
 
@@ -165,7 +165,7 @@ func seedListBaselineData(ctx context.Context, db *pgxpool.Pool, tenantID string
 			VALUES ($1,$2,$3,'announcement','konten','published')`, tenantID, fmt.Sprintf("Post %d", i), fmt.Sprintf("post-%d-%d", time.Now().UnixNano(), i)); err != nil {
 			return err
 		}
-		if _, err := db.Exec(ctx, `INSERT INTO donation_channels (tenant_id,channel_type,label,bank_name,account_number,account_holder_name,sort_order,is_public)
+		if _, err := db.Exec(ctx, `INSERT INTO static_payment_methods (tenant_id,channel_type,label,bank_name,account_number,account_holder_name,sort_order,is_public)
 			VALUES ($1,'bank_account',$2,'BSI','12345','DKM',$3,true)`, tenantID, fmt.Sprintf("Donasi %d", i), i); err != nil {
 			return err
 		}

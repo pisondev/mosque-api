@@ -24,6 +24,16 @@ type Controller interface {
 	ListPublicDonors(c *fiber.Ctx) error
 	CreateDonation(c *fiber.Ctx) error
 
+	ListSubscriptionPlans(c *fiber.Ctx) error
+	GetSubscriptionQuote(c *fiber.Ctx) error
+	CreateSubscriptionCheckout(c *fiber.Ctx) error
+	CreateSubscriptionCheckoutFromQuote(c *fiber.Ctx) error
+	ListSubscriptionTransactions(c *fiber.Ctx) error
+	GetSubscriptionTransaction(c *fiber.Ctx) error
+	GetActiveSubscriptionTransaction(c *fiber.Ctx) error
+	CancelSubscriptionTransaction(c *fiber.Ctx) error
+	ActivateFreePlan(c *fiber.Ctx) error
+
 	MidtransWebhook(c *fiber.Ctx) error
 }
 
@@ -249,6 +259,122 @@ func (ctrl *controller) CreateDonation(c *fiber.Ctx) error {
 	return response.Success(c, fiber.StatusCreated, "Checkout berhasil, silakan lanjutkan pembayaran", res, nil)
 }
 
+func (ctrl *controller) ListSubscriptionPlans(c *fiber.Ctx) error {
+	data, err := ctrl.svc.ListSubscriptionPlans(c.Context())
+	if err != nil {
+		ctrl.log.Error(err)
+		return response.Error(c, fiber.StatusInternalServerError, "Gagal mengambil paket langganan")
+	}
+	return response.Success(c, fiber.StatusOK, "Berhasil mengambil paket langganan", data, nil)
+}
+
+func (ctrl *controller) CreateSubscriptionCheckout(c *fiber.Ctx) error {
+	tenantID := getTenantID(c)
+	var req CreateSubscriptionCheckoutPayload
+	if err := c.BodyParser(&req); err != nil {
+		return response.Error(c, fiber.StatusBadRequest, "Format payload tidak valid")
+	}
+	res, err := ctrl.svc.CreateSubscriptionCheckout(c.Context(), tenantID, req)
+	if err != nil {
+		ctrl.log.Error(err)
+		return response.Error(c, fiber.StatusBadRequest, err.Error())
+	}
+	return response.Success(c, fiber.StatusCreated, "Checkout paket berhasil dibuat", res, nil)
+}
+
+func (ctrl *controller) GetSubscriptionQuote(c *fiber.Ctx) error {
+	tenantID := getTenantID(c)
+	var req SubscriptionQuotePayload
+	if err := c.BodyParser(&req); err != nil {
+		return response.Error(c, fiber.StatusBadRequest, "Format payload tidak valid")
+	}
+	res, err := ctrl.svc.GetSubscriptionQuote(c.Context(), tenantID, req)
+	if err != nil {
+		ctrl.log.Error(err)
+		return response.Error(c, fiber.StatusBadRequest, err.Error())
+	}
+	return response.Success(c, fiber.StatusOK, "Quote paket berhasil dihitung", res, nil)
+}
+
+func (ctrl *controller) CreateSubscriptionCheckoutFromQuote(c *fiber.Ctx) error {
+	tenantID := getTenantID(c)
+	var req SubscriptionQuotePayload
+	if err := c.BodyParser(&req); err != nil {
+		return response.Error(c, fiber.StatusBadRequest, "Format payload tidak valid")
+	}
+	res, err := ctrl.svc.CreateSubscriptionCheckoutFromQuote(c.Context(), tenantID, req)
+	if err != nil {
+		ctrl.log.Error(err)
+		return response.Error(c, fiber.StatusBadRequest, err.Error())
+	}
+	return response.Success(c, fiber.StatusCreated, "Checkout paket berhasil dibuat", res, nil)
+}
+
+func (ctrl *controller) ListSubscriptionTransactions(c *fiber.Ctx) error {
+	tenantID := getTenantID(c)
+	q := getPagination(c)
+	if q.Page < 1 {
+		q.Page = 1
+	}
+	if q.Limit < 1 {
+		q.Limit = 10
+	}
+	if q.Limit > 50 {
+		q.Limit = 50
+	}
+	res, total, err := ctrl.svc.ListSubscriptionTransactions(c.Context(), tenantID, q)
+	if err != nil {
+		ctrl.log.Error(err)
+		return response.Error(c, fiber.StatusInternalServerError, "Gagal mengambil riwayat transaksi subscription")
+	}
+	meta := fiber.Map{"page": q.Page, "limit": q.Limit, "total": total}
+	return response.Success(c, fiber.StatusOK, "Berhasil mengambil riwayat transaksi subscription", res, meta)
+}
+
+func (ctrl *controller) GetSubscriptionTransaction(c *fiber.Ctx) error {
+	tenantID := getTenantID(c)
+	id := c.Params("id")
+	res, err := ctrl.svc.GetSubscriptionTransaction(c.Context(), tenantID, id)
+	if err != nil {
+		ctrl.log.Error(err)
+		return response.Error(c, fiber.StatusNotFound, "Transaksi subscription tidak ditemukan")
+	}
+	return response.Success(c, fiber.StatusOK, "Berhasil mengambil status transaksi subscription", res, nil)
+}
+
+func (ctrl *controller) GetActiveSubscriptionTransaction(c *fiber.Ctx) error {
+	tenantID := getTenantID(c)
+	res, err := ctrl.svc.GetActiveSubscriptionTransaction(c.Context(), tenantID)
+	if err != nil {
+		ctrl.log.Error(err)
+		return response.Error(c, fiber.StatusInternalServerError, "Gagal mengambil transaksi subscription aktif")
+	}
+	if res == nil {
+		return response.Success(c, fiber.StatusOK, "Tidak ada transaksi subscription aktif", nil, nil)
+	}
+	return response.Success(c, fiber.StatusOK, "Berhasil mengambil transaksi subscription aktif", res, nil)
+}
+
+func (ctrl *controller) CancelSubscriptionTransaction(c *fiber.Ctx) error {
+	tenantID := getTenantID(c)
+	id := c.Params("id")
+	res, err := ctrl.svc.CancelSubscriptionTransaction(c.Context(), tenantID, id)
+	if err != nil {
+		ctrl.log.Error(err)
+		return response.Error(c, fiber.StatusBadRequest, err.Error())
+	}
+	return response.Success(c, fiber.StatusOK, "Transaksi subscription berhasil dibatalkan", res, nil)
+}
+
+func (ctrl *controller) ActivateFreePlan(c *fiber.Ctx) error {
+	tenantID := getTenantID(c)
+	if err := ctrl.svc.ActivateFreePlan(c.Context(), tenantID); err != nil {
+		ctrl.log.Error(err)
+		return response.Error(c, fiber.StatusInternalServerError, "Gagal mengaktifkan paket free")
+	}
+	return response.Success(c, fiber.StatusOK, "Paket free berhasil diaktifkan", nil, nil)
+}
+
 // ==========================================
 // WEBHOOK ENDPOINT
 // ==========================================
@@ -265,6 +391,10 @@ func (ctrl *controller) MidtransWebhook(c *fiber.Ctx) error {
 		// Jika signature salah, tolak dengan 403 Forbidden
 		if err.Error() == "invalid signature key" {
 			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{"status": "error", "message": "invalid signature"})
+		}
+		if err.Error() == "transaksi tidak ditemukan" {
+			ctrl.log.Warn("Webhook diabaikan karena order_id tidak terdaftar di sistem: ", payload.OrderID)
+			return c.Status(fiber.StatusOK).JSON(fiber.Map{"status": "success", "message": "webhook ignored: unknown order"})
 		}
 		// Midtrans menyarankan mengembalikan 200 OK meskipun ada error internal agar mereka tidak spam retry berulang kali
 		// Tapi untuk strict development, kita bisa kembalikan 500

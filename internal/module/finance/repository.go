@@ -2,8 +2,12 @@ package finance
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
+	"strings"
+	"time"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -29,6 +33,19 @@ type Repository interface {
 
 	CreateTransaction(ctx context.Context, tenantID string, req DonatePayload, status string) (*TransactionResponse, error)
 	UpdateTransactionPGInfo(ctx context.Context, transactionID string, snapToken string, paymentURL string) error
+	CreateSubscriptionTransaction(ctx context.Context, tenantID, orderID, planCode string, amount float64, status string) (*SubscriptionTransactionResponse, error)
+	UpdateSubscriptionPGInfo(ctx context.Context, transactionID string, snapToken string, paymentURL string) error
+	GetSubscriptionTransaction(ctx context.Context, tenantID, transactionID string) (*SubscriptionTransactionResponse, error)
+	GetLatestPendingSubscriptionTransaction(ctx context.Context, tenantID string) (*SubscriptionTransactionResponse, error)
+	GetLatestPaidSubscriptionTransaction(ctx context.Context, tenantID string) (*SubscriptionTransactionResponse, error)
+	ListPaidSubscriptionTransactions(ctx context.Context, tenantID string) ([]SubscriptionTransactionResponse, error)
+	ListSubscriptionTransactions(ctx context.Context, tenantID string, q ListQuery) ([]SubscriptionTransactionResponse, int64, error)
+	GetTenantSubscriptionPlan(ctx context.Context, tenantID string) (string, error)
+	ApplyImmediateSubscriptionDowngrade(ctx context.Context, tenantID, planCode string) (*SubscriptionTransactionResponse, error)
+	CancelSubscriptionTransaction(ctx context.Context, tenantID, transactionID string) (*SubscriptionTransactionResponse, error)
+	GetTenantIDBySubscriptionOrderID(ctx context.Context, orderID string) (string, error)
+	ProcessSubscriptionWebhookTransaction(ctx context.Context, orderID string, status string, paymentMethod string, transactionID string, rawPayload interface{}) error
+	ActivateFreePlan(ctx context.Context, tenantID string) error
 
 	ListPublicCampaigns(ctx context.Context, hostname string, q ListQuery) ([]CampaignResponse, int64, error)
 	GetPublicCampaignBySlug(ctx context.Context, hostname string, slug string) (*CampaignResponse, error)
@@ -339,6 +356,219 @@ func (r *repository) UpdateTransactionPGInfo(ctx context.Context, transactionID 
 	return err
 }
 
+func (r *repository) CreateSubscriptionTransaction(ctx context.Context, tenantID, orderID, planCode string, amount float64, status string) (*SubscriptionTransactionResponse, error) {
+	query := `
+		INSERT INTO subscription_transactions (tenant_id, order_id, plan_code, amount, status)
+		VALUES ($1, $2, $3, $4, $5)
+		RETURNING id, order_id, plan_code, amount, status, payment_method, paid_at, expired_at, created_at, payment_url
+	`
+	var res SubscriptionTransactionResponse
+	err := r.db.QueryRow(ctx, query, tenantID, orderID, planCode, amount, status).Scan(
+		&res.TransactionID, &res.OrderID, &res.PlanCode, &res.Amount, &res.Status, &res.PaymentMethod, &res.PaidAt, &res.ExpiredAt, &res.CreatedAt, &res.PaymentURL,
+	)
+	if err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (r *repository) UpdateSubscriptionPGInfo(ctx context.Context, transactionID string, snapToken string, paymentURL string) error {
+	rawJSON, _ := json.Marshal(map[string]interface{}{
+		"source":      "checkout_create",
+		"snap_token":  snapToken,
+		"payment_url": paymentURL,
+		"created_at":  time.Now().UTC(),
+	})
+	query := `
+		UPDATE subscription_transactions
+		SET snap_token = $1, payment_url = $2, raw_notification = COALESCE($4::jsonb, raw_notification), updated_at = NOW()
+		WHERE id = $3
+	`
+	_, err := r.db.Exec(ctx, query, snapToken, paymentURL, transactionID, string(rawJSON))
+	return err
+}
+
+func (r *repository) GetSubscriptionTransaction(ctx context.Context, tenantID, transactionID string) (*SubscriptionTransactionResponse, error) {
+	query := `
+		SELECT id, order_id, plan_code, amount, status, payment_method, paid_at, expired_at, created_at, payment_url
+		FROM subscription_transactions
+		WHERE tenant_id = $1 AND id = $2
+	`
+	var res SubscriptionTransactionResponse
+	err := r.db.QueryRow(ctx, query, tenantID, transactionID).Scan(
+		&res.TransactionID, &res.OrderID, &res.PlanCode, &res.Amount, &res.Status, &res.PaymentMethod, &res.PaidAt, &res.ExpiredAt, &res.CreatedAt, &res.PaymentURL,
+	)
+	if err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (r *repository) GetLatestPendingSubscriptionTransaction(ctx context.Context, tenantID string) (*SubscriptionTransactionResponse, error) {
+	query := `
+		SELECT id, order_id, plan_code, amount, status, payment_method, paid_at, expired_at, created_at, payment_url
+		FROM subscription_transactions
+		WHERE tenant_id = $1 AND status = 'pending'
+		ORDER BY created_at DESC
+		LIMIT 1
+	`
+	var res SubscriptionTransactionResponse
+	err := r.db.QueryRow(ctx, query, tenantID).Scan(
+		&res.TransactionID, &res.OrderID, &res.PlanCode, &res.Amount, &res.Status, &res.PaymentMethod, &res.PaidAt, &res.ExpiredAt, &res.CreatedAt, &res.PaymentURL,
+	)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (r *repository) GetLatestPaidSubscriptionTransaction(ctx context.Context, tenantID string) (*SubscriptionTransactionResponse, error) {
+	query := `
+		SELECT id, order_id, plan_code, amount, status, payment_method, paid_at, expired_at, created_at, payment_url
+		FROM subscription_transactions
+		WHERE tenant_id = $1 AND status = 'paid'
+		ORDER BY paid_at DESC NULLS LAST, created_at DESC
+		LIMIT 1
+	`
+	var res SubscriptionTransactionResponse
+	err := r.db.QueryRow(ctx, query, tenantID).Scan(
+		&res.TransactionID, &res.OrderID, &res.PlanCode, &res.Amount, &res.Status, &res.PaymentMethod, &res.PaidAt, &res.ExpiredAt, &res.CreatedAt, &res.PaymentURL,
+	)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (r *repository) ListPaidSubscriptionTransactions(ctx context.Context, tenantID string) ([]SubscriptionTransactionResponse, error) {
+	rows, err := r.db.Query(ctx, `
+		SELECT id, order_id, plan_code, amount, status, payment_method, paid_at, expired_at, created_at, payment_url
+		FROM subscription_transactions
+		WHERE tenant_id = $1 AND status = 'paid'
+		ORDER BY paid_at ASC NULLS LAST, created_at ASC
+	`, tenantID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	items := make([]SubscriptionTransactionResponse, 0)
+	for rows.Next() {
+		var res SubscriptionTransactionResponse
+		if err := rows.Scan(&res.TransactionID, &res.OrderID, &res.PlanCode, &res.Amount, &res.Status, &res.PaymentMethod, &res.PaidAt, &res.ExpiredAt, &res.CreatedAt, &res.PaymentURL); err != nil {
+			return nil, err
+		}
+		items = append(items, res)
+	}
+	return items, rows.Err()
+}
+
+func (r *repository) ListSubscriptionTransactions(ctx context.Context, tenantID string, q ListQuery) ([]SubscriptionTransactionResponse, int64, error) {
+	offset := getOffset(q.Page, q.Limit)
+
+	var total int64
+	err := r.db.QueryRow(ctx, `SELECT COUNT(id) FROM subscription_transactions WHERE tenant_id = $1`, tenantID).Scan(&total)
+	if err != nil {
+		return nil, 0, err
+	}
+	if total == 0 {
+		return []SubscriptionTransactionResponse{}, 0, nil
+	}
+
+	rows, err := r.db.Query(ctx, `
+		SELECT id, order_id, plan_code, amount, status, payment_method, paid_at, expired_at, created_at, payment_url
+		FROM subscription_transactions
+		WHERE tenant_id = $1
+		ORDER BY created_at DESC
+		LIMIT $2 OFFSET $3
+	`, tenantID, q.Limit, offset)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer rows.Close()
+
+	items := make([]SubscriptionTransactionResponse, 0, q.Limit)
+	for rows.Next() {
+		var res SubscriptionTransactionResponse
+		if err := rows.Scan(
+			&res.TransactionID, &res.OrderID, &res.PlanCode, &res.Amount, &res.Status, &res.PaymentMethod, &res.PaidAt, &res.ExpiredAt, &res.CreatedAt, &res.PaymentURL,
+		); err != nil {
+			return nil, 0, err
+		}
+		items = append(items, res)
+	}
+
+	return items, total, rows.Err()
+}
+
+func (r *repository) GetTenantSubscriptionPlan(ctx context.Context, tenantID string) (string, error) {
+	var planCode string
+	err := r.db.QueryRow(ctx, `SELECT subscription_plan FROM tenants WHERE id = $1`, tenantID).Scan(&planCode)
+	if err != nil {
+		return "", err
+	}
+	return planCode, nil
+}
+
+func (r *repository) ApplyImmediateSubscriptionDowngrade(ctx context.Context, tenantID, planCode string) (*SubscriptionTransactionResponse, error) {
+	tx, err := r.db.Begin(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback(ctx)
+
+	orderID := "SUB-DOWN-" + strings.ToUpper(uuid.NewString())
+	var res SubscriptionTransactionResponse
+	err = tx.QueryRow(ctx, `
+		INSERT INTO subscription_transactions (tenant_id, order_id, plan_code, amount, status, payment_method, paid_at, raw_notification)
+		VALUES ($1, $2, $3, 0, 'paid', 'internal_downgrade', NOW(), '{"source":"internal_downgrade"}')
+		RETURNING id, order_id, plan_code, amount, status, payment_method, paid_at, expired_at, created_at, payment_url
+	`, tenantID, orderID, planCode).Scan(&res.TransactionID, &res.OrderID, &res.PlanCode, &res.Amount, &res.Status, &res.PaymentMethod, &res.PaidAt, &res.ExpiredAt, &res.CreatedAt, &res.PaymentURL)
+	if err != nil {
+		return nil, err
+	}
+
+	if _, err = tx.Exec(ctx, `
+		UPDATE tenants
+		SET subscription_plan = $1,
+			onboarding_payment_status = 'paid',
+			updated_at = NOW()
+		WHERE id = $2
+	`, planCode, tenantID); err != nil {
+		return nil, err
+	}
+
+	if err = tx.Commit(ctx); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (r *repository) CancelSubscriptionTransaction(ctx context.Context, tenantID, transactionID string) (*SubscriptionTransactionResponse, error) {
+	query := `
+		UPDATE subscription_transactions
+		SET status = 'failed',
+			expired_at = COALESCE(expired_at, NOW()),
+			updated_at = NOW()
+		WHERE tenant_id = $1 AND id = $2 AND status = 'pending'
+		RETURNING id, order_id, plan_code, amount, status, payment_method, paid_at, expired_at, created_at, payment_url
+	`
+	var res SubscriptionTransactionResponse
+	err := r.db.QueryRow(ctx, query, tenantID, transactionID).Scan(
+		&res.TransactionID, &res.OrderID, &res.PlanCode, &res.Amount, &res.Status, &res.PaymentMethod, &res.PaidAt, &res.ExpiredAt, &res.CreatedAt, &res.PaymentURL,
+	)
+	if err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
 // ==========================================
 // PUBLIC METHODS (Menggunakan Hostname & JOIN)
 // ==========================================
@@ -453,8 +683,8 @@ func (r *repository) ProcessWebhookTransaction(ctx context.Context, orderID stri
 	}
 
 	updateTxQuery := `
-		UPDATE donation_transactions 
-		SET status = $1, payment_method = $2, paid_at = NOW(), updated_at = NOW()
+		UPDATE donation_transactions
+		SET status = $1, payment_method = $2, paid_at = CASE WHEN $1 = 'paid' THEN NOW() ELSE paid_at END, updated_at = NOW()
 		WHERE id = $3
 	`
 	_, err = tx.Exec(ctx, updateTxQuery, localStatus, paymentMethod, orderID)
@@ -479,8 +709,115 @@ func (r *repository) ProcessWebhookTransaction(ctx context.Context, orderID stri
 	return tx.Commit(ctx)
 }
 
+func (r *repository) GetTenantIDBySubscriptionOrderID(ctx context.Context, orderID string) (string, error) {
+	var tenantID string
+	err := r.db.QueryRow(ctx, `SELECT tenant_id FROM subscription_transactions WHERE order_id = $1`, orderID).Scan(&tenantID)
+	return tenantID, err
+}
+
+func (r *repository) ProcessSubscriptionWebhookTransaction(ctx context.Context, orderID string, status string, paymentMethod string, transactionID string, rawPayload interface{}) error {
+	tx, err := r.db.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
+
+	var currentStatus string
+	var tenantID string
+	var planCode string
+	lockQuery := `
+		SELECT status, tenant_id, plan_code
+		FROM subscription_transactions
+		WHERE order_id = $1
+		FOR UPDATE
+	`
+	err = tx.QueryRow(ctx, lockQuery, orderID).Scan(&currentStatus, &tenantID, &planCode)
+	if err != nil {
+		return err
+	}
+
+	if currentStatus == "paid" {
+		return nil
+	}
+
+	localStatus := "pending"
+	switch status {
+	case "settlement", "capture":
+		localStatus = "paid"
+	case "expire":
+		localStatus = "expired"
+	case "cancel", "deny":
+		localStatus = "failed"
+	}
+
+	var paidAt interface{}
+	var expiredAt interface{}
+	if localStatus == "paid" {
+		paidAt = time.Now()
+	}
+	if localStatus == "expired" {
+		expiredAt = time.Now()
+	}
+
+	rawJSON, _ := json.Marshal(rawPayload)
+	_, err = tx.Exec(ctx, `
+		UPDATE subscription_transactions
+		SET status = $1,
+			payment_method = $2,
+			midtrans_transaction_id = NULLIF($3, ''),
+			paid_at = COALESCE($4, paid_at),
+			expired_at = COALESCE($5, expired_at),
+			raw_notification = COALESCE($6::jsonb, raw_notification),
+			updated_at = NOW()
+		WHERE order_id = $7
+	`, localStatus, paymentMethod, transactionID, paidAt, expiredAt, string(rawJSON), orderID)
+	if err != nil {
+		return err
+	}
+
+	if localStatus == "paid" {
+		_, err = tx.Exec(ctx, `
+			UPDATE tenants
+			SET subscription_plan = $1,
+				onboarding_payment_status = 'paid',
+				onboarding_completed = false,
+				status = 'pending',
+				updated_at = NOW()
+			WHERE id = $2
+		`, planCode, tenantID)
+		if err != nil {
+			return err
+		}
+	} else if localStatus == "expired" || localStatus == "failed" {
+		_, err = tx.Exec(ctx, `
+			UPDATE tenants
+			SET onboarding_payment_status = $1,
+				updated_at = NOW()
+			WHERE id = $2
+		`, localStatus, tenantID)
+		if err != nil {
+			return err
+		}
+	}
+
+	return tx.Commit(ctx)
+}
+
 func (r *repository) GetTenantIDByTransactionID(ctx context.Context, transactionID string) (string, error) {
 	var tenantID string
 	err := r.db.QueryRow(ctx, `SELECT tenant_id FROM donation_transactions WHERE id = $1`, transactionID).Scan(&tenantID)
 	return tenantID, err
+}
+
+func (r *repository) ActivateFreePlan(ctx context.Context, tenantID string) error {
+	_, err := r.db.Exec(ctx, `
+		UPDATE tenants
+		SET subscription_plan = 'free',
+			onboarding_payment_status = 'free',
+			onboarding_completed = false,
+			status = 'pending',
+			updated_at = NOW()
+		WHERE id = $1
+	`, tenantID)
+	return err
 }

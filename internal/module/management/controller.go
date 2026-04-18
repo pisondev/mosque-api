@@ -578,6 +578,9 @@ func handleServiceError(c *fiber.Ctx, err error) error {
 	if errors.Is(err, ErrValidation) {
 		return response.Error(c, fiber.StatusBadRequest, "validation failed")
 	}
+	if errors.Is(err, ErrPaymentRequired) {
+		return response.Error(c, fiber.StatusPaymentRequired, "selesaikan pembayaran paket sebelum setup tenant")
+	}
 	return response.Error(c, fiber.StatusInternalServerError, "internal server error")
 }
 
@@ -626,6 +629,14 @@ func (ctrl *controller) SetupTenant(c *fiber.Ctx) error {
 		return response.Validation(c, "validation failed", []response.FieldError{
 			{Field: "name", Message: "name is required"},
 			{Field: "subdomain", Message: "subdomain is required"},
+		})
+	}
+
+	req.Name = strings.TrimSpace(req.Name)
+	req.Subdomain = strings.ToLower(strings.TrimSpace(req.Subdomain))
+	if !setupSubdomainRegex.MatchString(req.Subdomain) {
+		return response.Validation(c, "validation failed", []response.FieldError{
+			{Field: "subdomain", Message: "subdomain hanya boleh huruf kecil (a-z) dan strip (-), maksimal 10 karakter"},
 		})
 	}
 

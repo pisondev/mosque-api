@@ -1,0 +1,16 @@
+# Jalankan dari folder root MMS (C:\Users\bestu\Documents\trae_projects\MMS)
+# Reset semua user+tenant lokal (DEV ONLY), master data tetap aman
+
+$env:PGPASSWORD = "secretpassword"
+
+# 1) Cek PostgreSQL hidup
+& ".\.local\pgsql16\pgsql\bin\pg_isready.exe" -h localhost -p 5432
+
+# 2) Snapshot sebelum hapus (biar tahu data apa yang di-reset)
+& ".\.local\pgsql16\pgsql\bin\psql.exe" -h localhost -p 5432 -U root -d mosque_saas -v ON_ERROR_STOP=1 -P pager=off -c "SELECT u.email, u.tenant_id, t.subdomain, t.subscription_plan, t.onboarding_completed, t.onboarding_payment_status FROM public.users u LEFT JOIN public.tenants t ON t.id=u.tenant_id ORDER BY u.email;"
+
+# 3) Hapus semua tenant milik user lokal (cascade ke tabel turunan)
+& ".\.local\pgsql16\pgsql\bin\psql.exe" -h localhost -p 5432 -U root -d mosque_saas -v ON_ERROR_STOP=1 -P pager=off -c "BEGIN; WITH d AS (DELETE FROM public.tenants WHERE id IN (SELECT tenant_id FROM public.users) RETURNING id) SELECT COUNT(*) AS deleted_tenants FROM d; COMMIT;"
+
+# 4) Verifikasi hasil reset
+& ".\.local\pgsql16\pgsql\bin\psql.exe" -h localhost -p 5432 -U root -d mosque_saas -v ON_ERROR_STOP=1 -P pager=off -c "SELECT (SELECT COUNT(*) FROM public.users) AS users_count, (SELECT COUNT(*) FROM public.tenants) AS tenants_count, (SELECT COUNT(*) FROM public.feature_catalog) AS feature_catalog_count;"

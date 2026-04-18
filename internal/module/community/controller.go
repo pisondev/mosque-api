@@ -72,8 +72,8 @@ func (ctrl *controller) CreateEvent(c *fiber.Ctx) error {
 	if err := c.BodyParser(&req); err != nil {
 		return response.Validation(c, "validation failed", []response.FieldError{{Field: "body", Message: "invalid request format"}})
 	}
-	if req.Title == "" || req.StartDate == "" || req.Category == "" || req.TimeMode == "" || req.Status == "" {
-		return response.Validation(c, "validation failed", []response.FieldError{{Field: "payload", Message: "title, category, start_date, time_mode, status are required"}})
+	if req.Title == "" || req.StartDate == "" || req.Category == "" || req.TimeMode == "" {
+		return response.Validation(c, "validation failed", []response.FieldError{{Field: "payload", Message: "title, category, start_date, time_mode are required"}})
 	}
 	item, err := ctrl.service.CreateEvent(c.Context(), tenantID, req)
 	if err != nil {

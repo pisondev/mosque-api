@@ -1,0 +1,203 @@
+{
+  "info": {
+    "_postman_id": "09367a10-30f4-44e4-a798-82ed151fdbd1",
+    "name": "Etakmir - 07 Public",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Endpoint public website untuk event, galeri, pengurus, channel donasi, social link, external link, campaign, donor, dan donate."
+  },
+  "item": [
+    {
+      "name": "00. Community Public",
+      "item": [
+        {
+          "name": "GET /public/:hostname/events",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/public/{{publicHostname}}/events?page=1&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "public", "{{publicHostname}}", "events"],
+              "query": [{"key":"page","value":"1"},{"key":"limit","value":"10"}]
+            },
+            "description": "List event public berdasarkan hostname tenant."
+          },
+          "response": []
+        },
+        {
+          "name": "GET /public/:hostname/gallery/albums",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/public/{{publicHostname}}/gallery/albums?page=1&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "public", "{{publicHostname}}", "gallery", "albums"],
+              "query": [{"key":"page","value":"1"},{"key":"limit","value":"10"}]
+            },
+            "description": "List album galeri public."
+          },
+          "response": []
+        },
+        {
+          "name": "GET /public/:hostname/gallery/items",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/public/{{publicHostname}}/gallery/items?page=1&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "public", "{{publicHostname}}", "gallery", "items"],
+              "query": [{"key":"page","value":"1"},{"key":"limit","value":"10"}]
+            },
+            "description": "List item galeri public."
+          },
+          "response": []
+        },
+        {
+          "name": "GET /public/:hostname/management-members",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/public/{{publicHostname}}/management-members?page=1&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "public", "{{publicHostname}}", "management-members"],
+              "query": [{"key":"page","value":"1"},{"key":"limit","value":"10"}]
+            },
+            "description": "List pengurus public."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "01. Engagement Public",
+      "item": [
+        {
+          "name": "GET /public/:hostname/static-payment-methods",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/public/{{publicHostname}}/static-payment-methods?page=1&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "public", "{{publicHostname}}", "static-payment-methods"],
+              "query": [{"key":"page","value":"1"},{"key":"limit","value":"10"}]
+            },
+            "description": "List channel donasi statis public."
+          },
+          "response": []
+        },
+        {
+          "name": "GET /public/:hostname/social-links",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/public/{{publicHostname}}/social-links?page=1&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "public", "{{publicHostname}}", "social-links"],
+              "query": [{"key":"page","value":"1"},{"key":"limit","value":"10"}]
+            },
+            "description": "List social link public."
+          },
+          "response": []
+        },
+        {
+          "name": "GET /public/:hostname/external-links",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/public/{{publicHostname}}/external-links?page=1&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "public", "{{publicHostname}}", "external-links"],
+              "query": [{"key":"page","value":"1"},{"key":"limit","value":"10"}]
+            },
+            "description": "List external link public."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "02. Campaign Public",
+      "item": [
+        {
+          "name": "GET /public/:hostname/campaigns",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/public/{{publicHostname}}/campaigns?page=1&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "public", "{{publicHostname}}", "campaigns"],
+              "query": [{"key":"page","value":"1"},{"key":"limit","value":"10"}]
+            },
+            "description": "List campaign public."
+          },
+          "response": []
+        },
+        {
+          "name": "GET /public/:hostname/campaigns/:slug",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/public/{{publicHostname}}/campaigns/{{campaignSlug}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "public", "{{publicHostname}}", "campaigns", "{{campaignSlug}}"]
+            },
+            "description": "Detail campaign public berdasarkan slug."
+          },
+          "response": []
+        },
+        {
+          "name": "GET /public/:hostname/campaigns/:id/donors",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/public/{{publicHostname}}/campaigns/{{campaignId}}/donors?page=1&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "public", "{{publicHostname}}", "campaigns", "{{campaignId}}", "donors"],
+              "query": [{"key":"page","value":"1"},{"key":"limit","value":"10"}]
+            },
+            "description": "List donor public untuk campaign tertentu. Hanya transaksi paid yang tampil."
+          },
+          "response": []
+        },
+        {
+          "name": "POST /public/:hostname/campaigns/:id/donate",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"donor_name\": \"{{donorName}}\",\n  \"is_anonymous\": false,\n  \"amount\": {{donationAmount}}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/public/{{publicHostname}}/campaigns/{{campaignId}}/donate",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "public", "{{publicHostname}}", "campaigns", "{{campaignId}}", "donate"]
+            },
+            "description": "Membuat checkout donasi public. Minimal `donationAmount` adalah 10000 dan campaign harus aktif serta PG config tersedia."
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "variable": []
+}

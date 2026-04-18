@@ -364,5 +364,8 @@ func handleErr(c *fiber.Ctx, err error) error {
 	if errors.Is(err, ErrNotFound) {
 		return response.Error(c, fiber.StatusNotFound, "resource not found")
 	}
+	if errors.Is(err, ErrValidation) {
+		return response.Error(c, fiber.StatusBadRequest, "validation failed")
+	}
 	return response.Error(c, fiber.StatusInternalServerError, "internal server error")
 }

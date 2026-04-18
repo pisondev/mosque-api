@@ -1,0 +1,436 @@
+{
+  "info": {
+    "_postman_id": "b7c0c5c8-2a39-4dc8-9a12-fd1ab9810f3e",
+    "name": "Etakmir - 06 Finance",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Module finance untuk subscription, konfigurasi payment gateway, campaign donasi, dan transaksi tenant. Beberapa route butuh fitur `pg_digital` aktif."
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{bearerToken}}",
+        "type": "string"
+      }
+    ]
+  },
+  "item": [
+    {
+      "name": "00. Subscription",
+      "item": [
+        {
+          "name": "GET /tenant/subscription/plans",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tenant/subscription/plans",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "tenant", "subscription", "plans"]
+            },
+            "description": "List seluruh paket langganan yang tersedia."
+          },
+          "response": []
+        },
+        {
+          "name": "POST /tenant/subscription/activate-free",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tenant/subscription/activate-free",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "tenant", "subscription", "activate-free"]
+            },
+            "description": "Aktivasi onboarding paket free. Aman untuk bootstrap tenant lokal."
+          },
+          "response": []
+        },
+        {
+          "name": "POST /tenant/subscription/quote",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"plan_code\": \"{{subscriptionPlanCode}}\",\n  \"duration_month\": {{subscriptionDurationMonth}}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tenant/subscription/quote",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "tenant", "subscription", "quote"]
+            },
+            "description": "Menghitung quote upgrade/downgrade paket sebelum checkout."
+          },
+          "response": []
+        },
+        {
+          "name": "POST /tenant/subscription/checkout",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "const id = json?.data?.transaction_id;",
+                  "if (id) pm.environment.set('subscriptionTransactionId', id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"plan_code\": \"{{subscriptionPlanCode}}\",\n  \"duration_month\": {{subscriptionDurationMonth}}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tenant/subscription/checkout",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "tenant", "subscription", "checkout"]
+            },
+            "description": "Membuat checkout subscription berdasarkan plan code langsung. Response dapat menyimpan `subscriptionTransactionId`."
+          },
+          "response": []
+        },
+        {
+          "name": "POST /tenant/subscription/checkout-v2",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "const id = json?.data?.transaction_id;",
+                  "if (id) pm.environment.set('subscriptionTransactionId', id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"plan_code\": \"{{subscriptionPlanCode}}\",\n  \"duration_month\": {{subscriptionDurationMonth}}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tenant/subscription/checkout-v2",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "tenant", "subscription", "checkout-v2"]
+            },
+            "description": "Membuat checkout subscription dari hasil quote. Untuk paket free/downgrade tertentu bisa langsung selesai tanpa payment URL."
+          },
+          "response": []
+        },
+        {
+          "name": "GET /tenant/subscription/transactions",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tenant/subscription/transactions?page=1&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "tenant", "subscription", "transactions"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" }
+              ]
+            },
+            "description": "List riwayat transaksi subscription tenant."
+          },
+          "response": []
+        },
+        {
+          "name": "GET /tenant/subscription/transactions/active",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tenant/subscription/transactions/active",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "tenant", "subscription", "transactions", "active"]
+            },
+            "description": "Mengambil transaksi subscription aktif jika ada."
+          },
+          "response": []
+        },
+        {
+          "name": "GET /tenant/subscription/transactions/:id",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tenant/subscription/transactions/{{subscriptionTransactionId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "tenant", "subscription", "transactions", "{{subscriptionTransactionId}}"]
+            },
+            "description": "Detail transaksi subscription berdasarkan `subscriptionTransactionId`."
+          },
+          "response": []
+        },
+        {
+          "name": "POST /tenant/subscription/transactions/:id/cancel",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tenant/subscription/transactions/{{subscriptionTransactionId}}/cancel",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "tenant", "subscription", "transactions", "{{subscriptionTransactionId}}", "cancel"]
+            },
+            "description": "Membatalkan transaksi subscription jika status masih memungkinkan."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "01. PG Config",
+      "item": [
+        {
+          "name": "GET /tenant/pg-config",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tenant/pg-config",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "tenant", "pg-config"]
+            },
+            "description": "Membaca konfigurasi payment gateway. Route ini butuh fitur `pg_digital` aktif."
+          },
+          "response": []
+        },
+        {
+          "name": "PUT /tenant/pg-config",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"use_central_pg\": true,\n  \"provider\": \"{{pgProvider}}\",\n  \"client_key\": \"{{pgClientKey}}\",\n  \"server_key\": \"{{pgServerKey}}\",\n  \"is_production\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tenant/pg-config",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "tenant", "pg-config"]
+            },
+            "description": "Menyimpan konfigurasi payment gateway. Route ini butuh fitur `pg_digital` aktif."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "02. Campaigns",
+      "item": [
+        {
+          "name": "GET /tenant/campaigns",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tenant/campaigns?page=1&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "tenant", "campaigns"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" }
+              ]
+            },
+            "description": "List campaign donasi tenant. Route ini butuh fitur `pg_digital` aktif."
+          },
+          "response": []
+        },
+        {
+          "name": "POST /tenant/campaigns",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const title = `Campaign ${Date.now()}`;",
+                  "pm.environment.set('campaignTitle', title);",
+                  "pm.environment.set('campaignSlug', title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "const id = json?.data?.id;",
+                  "const slug = json?.data?.slug;",
+                  "if (id !== undefined && id !== null) pm.environment.set('campaignId', String(id));",
+                  "if (slug) pm.environment.set('campaignSlug', slug);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"{{campaignTitle}}\",\n  \"slug\": \"{{campaignSlug}}\",\n  \"description\": \"Campaign penggalangan dana dari Postman\",\n  \"image_url\": \"{{headerImageUrl}}\",\n  \"target_amount\": {{campaignTargetAmount}},\n  \"start_date\": \"2026-04-17T00:00:00Z\",\n  \"end_date\": \"2026-05-17T00:00:00Z\",\n  \"is_active\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tenant/campaigns",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "tenant", "campaigns"]
+            },
+            "description": "Membuat campaign donasi tenant dan menyimpan `campaignId` serta `campaignSlug`. Route ini butuh fitur `pg_digital` aktif."
+          },
+          "response": []
+        },
+        {
+          "name": "GET /tenant/campaigns/:id",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tenant/campaigns/{{campaignId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "tenant", "campaigns", "{{campaignId}}"]
+            },
+            "description": "Detail campaign donasi tenant. Butuh fitur `pg_digital` aktif."
+          },
+          "response": []
+        },
+        {
+          "name": "PUT /tenant/campaigns/:id",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"{{campaignTitle}} Updated\",\n  \"slug\": \"{{campaignSlug}}\",\n  \"description\": \"Campaign penggalangan dana versi update\",\n  \"image_url\": \"{{headerImageUrl}}\",\n  \"target_amount\": {{campaignTargetAmount}},\n  \"start_date\": \"2026-04-17T00:00:00Z\",\n  \"end_date\": \"2026-06-01T00:00:00Z\",\n  \"is_active\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tenant/campaigns/{{campaignId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "tenant", "campaigns", "{{campaignId}}"]
+            },
+            "description": "Update campaign donasi tenant. Butuh fitur `pg_digital` aktif."
+          },
+          "response": []
+        },
+        {
+          "name": "GET /tenant/campaigns/:id/transactions",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tenant/campaigns/{{campaignId}}/transactions?page=1&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "tenant", "campaigns", "{{campaignId}}", "transactions"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" }
+              ]
+            },
+            "description": "List transaksi campaign tenant. Butuh fitur `pg_digital` aktif."
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "variable": []
+}

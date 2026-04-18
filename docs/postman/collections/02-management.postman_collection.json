@@ -1,0 +1,705 @@
+{
+  "info": {
+    "_postman_id": "9b7dc870-bcf6-4f9c-a355-2d4a88b11b32",
+    "name": "Etakmir - 02 Management",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Module management untuk onboarding tenant, domain, profile, tags, posts, static pages, dan media internal tenant."
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{bearerToken}}",
+        "type": "string"
+      }
+    ]
+  },
+  "item": [
+    {
+      "name": "00. Tenant Context",
+      "item": [
+        {
+          "name": "GET /tenant/me",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status code is 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "pm.test('tenant context loaded', function () {",
+                  "  pm.expect(json.status).to.eql('success');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tenant/me",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "tenant", "me"]
+            },
+            "description": "Mengambil konteks tenant dari JWT aktif."
+          },
+          "response": []
+        },
+        {
+          "name": "PATCH /tenant/setup",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status code is 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "pm.test('tenant setup successful', function () {",
+                  "  pm.expect(json.status).to.eql('success');",
+                  "});",
+                  "pm.environment.set('publicHostname', `${pm.environment.get('tenantSubdomain')}.localhost`);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"{{tenantName}}\",\n  \"subdomain\": \"{{tenantSubdomain}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tenant/setup",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "tenant", "setup"]
+            },
+            "description": "Onboarding nama tenant dan subdomain. Subdomain harus huruf kecil/strip dan maksimal 10 karakter."
+          },
+          "response": []
+        },
+        {
+          "name": "GET /tenant/billing-status",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status code is 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "pm.test('billing status loaded', function () {",
+                  "  pm.expect(json.status).to.eql('success');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tenant/billing-status",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "tenant", "billing-status"]
+            },
+            "description": "Mengambil status langganan tenant dan info fitur aktif."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "01. Domains",
+      "item": [
+        {
+          "name": "GET /tenant/domains",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tenant/domains?page=1&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "tenant", "domains"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" }
+              ]
+            },
+            "description": "List domain tenant aktif/pending."
+          },
+          "response": []
+        },
+        {
+          "name": "POST /tenant/domains",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const autoGenerate = (pm.environment.get('autoGenerateDomainHostname') || 'true').toLowerCase() === 'true';",
+                  "if (autoGenerate) {",
+                  "  pm.environment.set('domainHostname', `tenant-${Date.now()}.localtest.me`);",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status code is 201', function () {",
+                  "  pm.response.to.have.status(201);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "pm.test('domain created', function () {",
+                  "  pm.expect(json.status).to.eql('success');",
+                  "});",
+                  "const domainId = json?.data?.id;",
+                  "if (domainId !== undefined && domainId !== null) pm.environment.set('domainId', String(domainId));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"domain_type\": \"{{domainType}}\",\n  \"hostname\": \"{{domainHostname}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tenant/domains",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "tenant", "domains"]
+            },
+            "description": "Menambahkan domain tenant. Hostname default dibuat unik per eksekusi jika auto generate aktif."
+          },
+          "response": []
+        },
+        {
+          "name": "PATCH /tenant/domains/:id",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"active\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tenant/domains/{{domainId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "tenant", "domains", "{{domainId}}"]
+            },
+            "description": "Mengubah status domain tenant tertentu."
+          },
+          "response": []
+        },
+        {
+          "name": "DELETE /tenant/domains/:id",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tenant/domains/{{domainId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "tenant", "domains", "{{domainId}}"]
+            },
+            "description": "Cleanup domain tenant. Jalankan jika ingin menghapus data uji."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "02. Profile",
+      "item": [
+        {
+          "name": "GET /tenant/profile",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tenant/profile",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "tenant", "profile"]
+            },
+            "description": "Mengambil profile masjid tenant."
+          },
+          "response": []
+        },
+        {
+          "name": "PUT /tenant/profile",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"official_name\": \"{{profileOfficialName}}\",\n  \"kind\": \"{{profileKind}}\",\n  \"short_name\": \"Etakmir\",\n  \"short_description\": \"Pusat ibadah dan pembinaan umat\",\n  \"province\": \"Jawa Timur\",\n  \"city\": \"Surabaya\",\n  \"address_full\": \"Jl. Contoh No. 123\",\n  \"phone_whatsapp\": \"6281234567890\",\n  \"email\": \"{{profileEmail}}\",\n  \"header_image_url\": \"{{headerImageUrl}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tenant/profile",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "tenant", "profile"]
+            },
+            "description": "Create/update profile tenant. `headerImageUrl` bisa diisi dari hasil endpoint upload."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "03. Tags",
+      "item": [
+        {
+          "name": "GET /tenant/tags",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tenant/tags?page=1&limit=10&scope={{tagScope}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "tenant", "tags"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" },
+                { "key": "scope", "value": "{{tagScope}}" }
+              ]
+            },
+            "description": "List tag tenant."
+          },
+          "response": []
+        },
+        {
+          "name": "POST /tenant/tags",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.environment.set('tagName', `Tag ${Date.now()}`);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status code is 201', function () {",
+                  "  pm.response.to.have.status(201);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "const tagId = json?.data?.id;",
+                  "if (tagId !== undefined && tagId !== null) pm.environment.set('tagId', String(tagId));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"scope\": \"{{tagScope}}\",\n  \"name\": \"{{tagName}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tenant/tags",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "tenant", "tags"]
+            },
+            "description": "Membuat tag baru dan menyimpan `tagId` ke environment."
+          },
+          "response": []
+        },
+        {
+          "name": "PATCH /tenant/tags/:id",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"{{tagName}} Updated\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tenant/tags/{{tagId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "tenant", "tags", "{{tagId}}"]
+            },
+            "description": "Update nama tag yang tersimpan di `tagId`."
+          },
+          "response": []
+        },
+        {
+          "name": "DELETE /tenant/tags/:id",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tenant/tags/{{tagId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "tenant", "tags", "{{tagId}}"]
+            },
+            "description": "Cleanup tag uji. Jalankan setelah post yang memakai tag ini sudah tidak dibutuhkan."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "04. Posts",
+      "item": [
+        {
+          "name": "GET /tenant/posts",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tenant/posts?page=1&limit=10&status=draft&category={{postCategory}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "tenant", "posts"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" },
+                { "key": "status", "value": "draft" },
+                { "key": "category", "value": "{{postCategory}}" }
+              ]
+            },
+            "description": "List post tenant."
+          },
+          "response": []
+        },
+        {
+          "name": "POST /tenant/posts",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.environment.set('postTitle', `Post ${Date.now()}`);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status code is 201', function () {",
+                  "  pm.response.to.have.status(201);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "const postId = json?.data?.id;",
+                  "if (postId !== undefined && postId !== null) pm.environment.set('postId', String(postId));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"{{postTitle}}\",\n  \"category\": \"{{postCategory}}\",\n  \"excerpt\": \"Ringkasan singkat untuk post uji management\",\n  \"content_markdown\": \"# Judul\\n\\nKonten markdown untuk pengujian module management.\",\n  \"thumbnail_url\": \"{{headerImageUrl}}\",\n  \"author_name\": \"Admin Etakmir\",\n  \"published_at\": null,\n  \"expired_at\": null,\n  \"status\": \"draft\",\n  \"show_on_homepage\": true,\n  \"sort_order\": 1,\n  \"tag_ids\": [{{tagId}}]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tenant/posts",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "tenant", "posts"]
+            },
+            "description": "Membuat post baru. `tagId` otomatis dipakai dari hasil create tag."
+          },
+          "response": []
+        },
+        {
+          "name": "GET /tenant/posts/:id",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tenant/posts/{{postId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "tenant", "posts", "{{postId}}"]
+            },
+            "description": "Detail post berdasarkan `postId`."
+          },
+          "response": []
+        },
+        {
+          "name": "PUT /tenant/posts/:id",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"{{postTitle}} Updated\",\n  \"category\": \"{{postCategory}}\",\n  \"excerpt\": \"Versi update untuk post uji management\",\n  \"content_markdown\": \"# Update\\n\\nKonten markdown versi update.\",\n  \"thumbnail_url\": \"{{headerImageUrl}}\",\n  \"author_name\": \"Admin Etakmir\",\n  \"published_at\": null,\n  \"expired_at\": null,\n  \"status\": \"draft\",\n  \"show_on_homepage\": true,\n  \"sort_order\": 2,\n  \"tag_ids\": [{{tagId}}]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tenant/posts/{{postId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "tenant", "posts", "{{postId}}"]
+            },
+            "description": "Update keseluruhan post."
+          },
+          "response": []
+        },
+        {
+          "name": "PATCH /tenant/posts/:id/status",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"published\",\n  \"published_at\": \"2026-04-17T12:00:00Z\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tenant/posts/{{postId}}/status",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "tenant", "posts", "{{postId}}", "status"]
+            },
+            "description": "Mengubah status post, misalnya dari draft menjadi published."
+          },
+          "response": []
+        },
+        {
+          "name": "DELETE /tenant/posts/:id",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tenant/posts/{{postId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "tenant", "posts", "{{postId}}"]
+            },
+            "description": "Cleanup post uji."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "05. Static Pages",
+      "item": [
+        {
+          "name": "GET /tenant/static-pages",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tenant/static-pages",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "tenant", "static-pages"]
+            },
+            "description": "List seluruh static page tenant."
+          },
+          "response": []
+        },
+        {
+          "name": "PUT /tenant/static-pages/:slug",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Tentang Kami\",\n  \"content_markdown\": \"# Tentang Kami\\n\\nHalaman statis untuk profil singkat masjid.\",\n  \"excerpt\": \"Ringkasan halaman tentang kami\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tenant/static-pages/{{pageSlug}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "tenant", "static-pages", "{{pageSlug}}"]
+            },
+            "description": "Create/update static page berdasarkan slug."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "06. Media",
+      "item": [
+        {
+          "name": "GET /tenant/storage-quota",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tenant/storage-quota",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "tenant", "storage-quota"]
+            },
+            "description": "Melihat pemakaian storage tenant saat ini."
+          },
+          "response": []
+        },
+        {
+          "name": "POST /tenant/upload",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "const url = json?.data?.url;",
+                  "if (url) {",
+                  "  pm.environment.set('oldUploadUrl', url);",
+                  "  if ((pm.environment.get('uploadKind') || 'header') === 'header') {",
+                  "    pm.environment.set('headerImageUrl', url);",
+                  "  }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": []
+                },
+                {
+                  "key": "old_url",
+                  "value": "{{oldUploadUrl}}",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tenant/upload?kind={{uploadKind}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "tenant", "upload"],
+              "query": [
+                {
+                  "key": "kind",
+                  "value": "{{uploadKind}}"
+                }
+              ]
+            },
+            "description": "Upload file gambar multipart. Pilih file manual di field `file`. `uploadKind` mendukung `header`, `management_photo`, `event_poster`, dan `qris`."
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "variable": []
+}

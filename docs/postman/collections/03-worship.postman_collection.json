@@ -1,0 +1,469 @@
+{
+  "info": {
+    "_postman_id": "7d715cb3-8d1e-4f7c-b560-8030afe71743",
+    "name": "Etakmir - 03 Worship",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Module worship untuk pengaturan waktu salat, jadwal harian, petugas ibadah, hari besar, dan kalender ibadah tenant."
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{bearerToken}}",
+        "type": "string"
+      }
+    ]
+  },
+  "item": [
+    {
+      "name": "00. Prayer Time Settings",
+      "item": [
+        {
+          "name": "GET /tenant/prayer-time-settings",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tenant/prayer-time-settings",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "tenant", "prayer-time-settings"]
+            },
+            "description": "Mengambil konfigurasi pengaturan waktu salat tenant."
+          },
+          "response": []
+        },
+        {
+          "name": "PUT /tenant/prayer-time-settings",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"timezone\": \"{{prayerTimezone}}\",\n  \"location_mode\": \"{{prayerLocationMode}}\",\n  \"city_name\": \"{{prayerCityName}}\",\n  \"latitude\": null,\n  \"longitude\": null,\n  \"calc_method\": \"{{prayerCalcMethod}}\",\n  \"asr_madhhab\": \"{{prayerAsrMadhhab}}\",\n  \"adj_subuh_min\": 0,\n  \"adj_dzuhur_min\": 0,\n  \"adj_ashar_min\": 0,\n  \"adj_maghrib_min\": 0,\n  \"adj_isya_min\": 0\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tenant/prayer-time-settings",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "tenant", "prayer-time-settings"]
+            },
+            "description": "Menyimpan konfigurasi waktu salat tenant."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "01. Prayer Times Daily",
+      "item": [
+        {
+          "name": "GET /tenant/prayer-times-daily",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tenant/prayer-times-daily?page=1&limit=10&from={{worshipDate}}&to={{worshipDateTo}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "tenant", "prayer-times-daily"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" },
+                { "key": "from", "value": "{{worshipDate}}" },
+                { "key": "to", "value": "{{worshipDateTo}}" }
+              ]
+            },
+            "description": "List jadwal waktu salat harian tenant."
+          },
+          "response": []
+        },
+        {
+          "name": "POST /tenant/prayer-times-daily",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status code is 201', function () {",
+                  "  pm.response.to.have.status(201);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "const id = json?.data?.id;",
+                  "if (id !== undefined && id !== null) pm.environment.set('prayerTimesDailyId', String(id));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"day_date\": \"{{worshipDate}}\",\n  \"subuh_time\": \"04:26\",\n  \"dzuhur_time\": \"11:42\",\n  \"ashar_time\": \"15:02\",\n  \"maghrib_time\": \"17:32\",\n  \"isya_time\": \"18:43\",\n  \"sunrise_time\": \"05:38\",\n  \"dhuha_time\": \"06:15\",\n  \"source_label\": \"manual-postman\",\n  \"fetched_at\": \"2026-04-17T05:00:00Z\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tenant/prayer-times-daily",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "tenant", "prayer-times-daily"]
+            },
+            "description": "Membuat jadwal waktu salat harian dan menyimpan `prayerTimesDailyId`."
+          },
+          "response": []
+        },
+        {
+          "name": "GET /tenant/prayer-times-daily/:id",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tenant/prayer-times-daily/{{prayerTimesDailyId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "tenant", "prayer-times-daily", "{{prayerTimesDailyId}}"]
+            },
+            "description": "Detail jadwal waktu salat harian."
+          },
+          "response": []
+        },
+        {
+          "name": "PUT /tenant/prayer-times-daily/:id",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"day_date\": \"{{worshipDate}}\",\n  \"subuh_time\": \"04:27\",\n  \"dzuhur_time\": \"11:43\",\n  \"ashar_time\": \"15:03\",\n  \"maghrib_time\": \"17:33\",\n  \"isya_time\": \"18:44\",\n  \"sunrise_time\": \"05:39\",\n  \"dhuha_time\": \"06:16\",\n  \"source_label\": \"manual-postman-updated\",\n  \"fetched_at\": \"2026-04-17T06:00:00Z\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tenant/prayer-times-daily/{{prayerTimesDailyId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "tenant", "prayer-times-daily", "{{prayerTimesDailyId}}"]
+            },
+            "description": "Update jadwal waktu salat harian."
+          },
+          "response": []
+        },
+        {
+          "name": "DELETE /tenant/prayer-times-daily/:id",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tenant/prayer-times-daily/{{prayerTimesDailyId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "tenant", "prayer-times-daily", "{{prayerTimesDailyId}}"]
+            },
+            "description": "Cleanup jadwal waktu salat harian."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "02. Prayer Duties",
+      "item": [
+        {
+          "name": "GET /tenant/prayer-duties",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tenant/prayer-duties?page=1&limit=10&from={{worshipDate}}&to={{worshipDateTo}}&category=jumat&prayer=dzuhur",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "tenant", "prayer-duties"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" },
+                { "key": "from", "value": "{{worshipDate}}" },
+                { "key": "to", "value": "{{worshipDateTo}}" },
+                { "key": "category", "value": "jumat" },
+                { "key": "prayer", "value": "dzuhur" }
+              ]
+            },
+            "description": "List petugas ibadah berdasarkan rentang tanggal dan kategori."
+          },
+          "response": []
+        },
+        {
+          "name": "POST /tenant/prayer-duties",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status code is 201', function () {",
+                  "  pm.response.to.have.status(201);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "const id = json?.data?.id;",
+                  "if (id !== undefined && id !== null) pm.environment.set('prayerDutyId', String(id));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"category\": \"jumat\",\n  \"duty_date\": \"{{worshipDate}}\",\n  \"prayer\": \"dzuhur\",\n  \"khatib_name\": \"Ustadz Ahmad\",\n  \"imam_name\": \"Ustadz Fulan\",\n  \"muadzin_name\": \"Bilal Hasan\",\n  \"first_adhan_time\": \"11:35\",\n  \"khutbah_start_time\": \"11:45\",\n  \"khutbah_topic\": \"Syukur atas nikmat Allah\",\n  \"note\": \"Petugas pekan ini\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tenant/prayer-duties",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "tenant", "prayer-duties"]
+            },
+            "description": "Membuat jadwal petugas ibadah dan menyimpan `prayerDutyId`."
+          },
+          "response": []
+        },
+        {
+          "name": "GET /tenant/prayer-duties/:id",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tenant/prayer-duties/{{prayerDutyId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "tenant", "prayer-duties", "{{prayerDutyId}}"]
+            },
+            "description": "Detail petugas ibadah."
+          },
+          "response": []
+        },
+        {
+          "name": "PUT /tenant/prayer-duties/:id",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"category\": \"jumat\",\n  \"duty_date\": \"{{worshipDate}}\",\n  \"prayer\": \"dzuhur\",\n  \"khatib_name\": \"Ustadz Ahmad Update\",\n  \"imam_name\": \"Ustadz Fulan Update\",\n  \"muadzin_name\": \"Bilal Hasan Update\",\n  \"first_adhan_time\": \"11:36\",\n  \"khutbah_start_time\": \"11:46\",\n  \"khutbah_topic\": \"Akhlak jamaah\",\n  \"note\": \"Versi update\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tenant/prayer-duties/{{prayerDutyId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "tenant", "prayer-duties", "{{prayerDutyId}}"]
+            },
+            "description": "Update jadwal petugas ibadah."
+          },
+          "response": []
+        },
+        {
+          "name": "DELETE /tenant/prayer-duties/:id",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tenant/prayer-duties/{{prayerDutyId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "tenant", "prayer-duties", "{{prayerDutyId}}"]
+            },
+            "description": "Cleanup petugas ibadah."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "03. Special Days",
+      "item": [
+        {
+          "name": "GET /tenant/special-days",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tenant/special-days?page=1&limit=10&kind={{specialDayKind}}&from={{worshipDate}}&to={{worshipDateTo}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "tenant", "special-days"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" },
+                { "key": "kind", "value": "{{specialDayKind}}" },
+                { "key": "from", "value": "{{worshipDate}}" },
+                { "key": "to", "value": "{{worshipDateTo}}" }
+              ]
+            },
+            "description": "List hari besar atau event ibadah khusus."
+          },
+          "response": []
+        },
+        {
+          "name": "POST /tenant/special-days",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status code is 201', function () {",
+                  "  pm.response.to.have.status(201);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "const id = json?.data?.id;",
+                  "if (id !== undefined && id !== null) pm.environment.set('specialDayId', String(id));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"kind\": \"{{specialDayKind}}\",\n  \"title\": \"Shalat Idul Fitri\",\n  \"day_date\": \"{{worshipDate}}\",\n  \"location_note\": \"Lapangan utama kompleks masjid\",\n  \"start_time\": \"06:30\",\n  \"note\": \"Datang lebih awal untuk pengaturan saf\",\n  \"imam_name\": \"Ustadz Karim\",\n  \"khatib_name\": \"Dr. Abdullah\",\n  \"muadzin_name\": \"Bilal Ramadhan\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tenant/special-days",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "tenant", "special-days"]
+            },
+            "description": "Membuat hari besar ibadah dan menyimpan `specialDayId`."
+          },
+          "response": []
+        },
+        {
+          "name": "GET /tenant/special-days/:id",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tenant/special-days/{{specialDayId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "tenant", "special-days", "{{specialDayId}}"]
+            },
+            "description": "Detail hari besar ibadah."
+          },
+          "response": []
+        },
+        {
+          "name": "PUT /tenant/special-days/:id",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"kind\": \"{{specialDayKind}}\",\n  \"title\": \"Shalat Idul Fitri Update\",\n  \"day_date\": \"{{worshipDate}}\",\n  \"location_note\": \"Aula utama kompleks masjid\",\n  \"start_time\": \"06:45\",\n  \"note\": \"Versi update informasi lokasi\",\n  \"imam_name\": \"Ustadz Karim Update\",\n  \"khatib_name\": \"Dr. Abdullah Update\",\n  \"muadzin_name\": \"Bilal Ramadhan Update\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tenant/special-days/{{specialDayId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "tenant", "special-days", "{{specialDayId}}"]
+            },
+            "description": "Update data hari besar ibadah."
+          },
+          "response": []
+        },
+        {
+          "name": "DELETE /tenant/special-days/:id",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tenant/special-days/{{specialDayId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "tenant", "special-days", "{{specialDayId}}"]
+            },
+            "description": "Cleanup hari besar ibadah."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "04. Prayer Calendar",
+      "item": [
+        {
+          "name": "GET /tenant/prayer-calendar",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tenant/prayer-calendar?from={{worshipDate}}&to={{worshipDateTo}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "tenant", "prayer-calendar"],
+              "query": [
+                { "key": "from", "value": "{{worshipDate}}" },
+                { "key": "to", "value": "{{worshipDateTo}}" }
+              ]
+            },
+            "description": "Mengambil kalender ibadah gabungan berdasarkan rentang tanggal."
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "variable": []
+}
